@@ -19,57 +19,66 @@
 </head>
 <body class="bg-[#0a0a0b] text-slate-100 font-sans">
   <div class="max-w-4xl mx-auto px-6 py-16">
-    <h1 class="text-5xl font-bold text-white tracking-tight">sick-memory</h1>
+    <h1 class="text-5xl font-bold text-white tracking-tight">sick-memory <span class="text-4xl">🤮💾</span></h1>
     <p class="text-slate-400 mt-3 text-lg">File-based memory system for AI coding agents — centralized storage, git-based scoping, worktree support.</p>
+
+    <div class="mt-6 flex flex-wrap gap-3">
+      <a href="https://github.com/javimosch/sick-memory" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-800 text-slate-300 text-sm hover:bg-slate-700 transition-all">⭐ GitHub</a>
+      <a href="https://github.com/javimosch/supercli" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-800 text-slate-300 text-sm hover:bg-slate-700 transition-all">⚡ supercli</a>
+    </div>
 
     <div class="mt-10 grid gap-6">
       <div class="p-6 rounded-xl border border-slate-800 bg-[#121213]">
-        <h2 class="text-xl font-semibold text-white">Quick Start</h2>
-        <pre class="mt-4 p-4 rounded-lg bg-[#1a1a1c] text-sm text-slate-300 overflow-x-auto"><code>sick-memory init
+        <h2 class="text-xl font-semibold text-white">⚡ Quick Start</h2>
+        <div class="mt-3 mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-sm text-slate-300">
+          🚀 Also available as a <a href="https://github.com/javimosch/supercli" class="text-blue-400 hover:underline">supercli</a> plugin: <code class="text-sm bg-[#1a1a1c] px-1.5 py-0.5 rounded">sc plugins install sick-memory</code>
+        </div>
+        <pre class="p-4 rounded-lg bg-[#1a1a1c] text-sm text-slate-300 overflow-x-auto"><code>sick-memory init
 sick-memory remember "Authentication uses JWT with 24h expiry" --type project
 sick-memory recall "authentication" --json
 sick-memory list --json</code></pre>
       </div>
 
       <div class="p-6 rounded-xl border border-slate-800 bg-[#121213]">
-        <h2 class="text-xl font-semibold text-white">Key Features</h2>
+        <h2 class="text-xl font-semibold text-white">✨ Key Features</h2>
         <ul class="mt-4 space-y-2 text-slate-300">
-          <li><span class="text-brand-400 mr-2">→</span> Centralized storage at <code class="text-sm bg-[#1a1a1c] px-1.5 py-0.5 rounded">~/.sick-memory/</code></li>
-          <li><span class="text-brand-400 mr-2">→</span> Git-based scoping — memory tied to repository root</li>
-          <li><span class="text-brand-400 mr-2">→</span> Worktree support — all worktrees share memory</li>
-          <li><span class="text-brand-400 mr-2">→</span> TF-IDF search with word-overlap fallback</li>
-          <li><span class="text-brand-400 mr-2">→</span> JSON output for agent consumption</li>
-          <li><span class="text-brand-400 mr-2">→</span> Agent bridges for Claude Code, OpenCode, Copilot</li>
-          <li><span class="text-brand-400 mr-2">→</span> Zero infrastructure — files only, no DB</li>
+          <li><span class="text-blue-400 mr-2">📦</span> Centralized storage at <code class="text-sm bg-[#1a1a1c] px-1.5 py-0.5 rounded">~/.sick-memory/</code></li>
+          <li><span class="text-blue-400 mr-2">🌿</span> Git-based scoping — memory tied to repository root</li>
+          <li><span class="text-blue-400 mr-2">🔗</span> Worktree support — all worktrees share memory</li>
+          <li><span class="text-blue-400 mr-2">🔍</span> TF-IDF search with word-overlap fallback</li>
+          <li><span class="text-blue-400 mr-2">📋</span> JSON output for agent consumption</li>
+          <li><span class="text-blue-400 mr-2">🤖</span> Agent bridges for Claude Code, OpenCode, Copilot</li>
+          <li><span class="text-blue-400 mr-2">💾</span> Zero infrastructure — files only, no DB</li>
         </ul>
       </div>
 
       <div class="p-6 rounded-xl border border-slate-800 bg-[#121213]">
-        <h2 class="text-xl font-semibold text-white">Commands</h2>
+        <h2 class="text-xl font-semibold text-white">📟 Commands</h2>
         <div class="mt-4 grid sm:grid-cols-2 gap-3 text-sm">
-          <div class="p-3 rounded-lg bg-[#1a1a1c]"><code class="text-brand-400">init</code><p class="text-slate-400 mt-1">Initialize memory system</p></div>
-          <div class="p-3 rounded-lg bg-[#1a1a1c]"><code class="text-brand-400">remember</code><p class="text-slate-400 mt-1">Store a new memory</p></div>
-          <div class="p-3 rounded-lg bg-[#1a1a1c]"><code class="text-brand-400">recall</code><p class="text-slate-400 mt-1">Search memories</p></div>
-          <div class="p-3 rounded-lg bg-[#1a1a1c]"><code class="text-brand-400">list</code><p class="text-slate-400 mt-1">List all memories</p></div>
-          <div class="p-3 rounded-lg bg-[#1a1a1c]"><code class="text-brand-400">edit</code><p class="text-slate-400 mt-1">Update a memory</p></div>
-          <div class="p-3 rounded-lg bg-[#1a1a1c]"><code class="text-brand-400">delete</code><p class="text-slate-400 mt-1">Remove a memory</p></div>
+          <div class="p-3 rounded-lg bg-[#1a1a1c]"><code class="text-blue-400">init</code><p class="text-slate-400 mt-1">🔧 Initialize memory system</p></div>
+          <div class="p-3 rounded-lg bg-[#1a1a1c]"><code class="text-blue-400">remember</code><p class="text-slate-400 mt-1">💾 Store a new memory</p></div>
+          <div class="p-3 rounded-lg bg-[#1a1a1c]"><code class="text-blue-400">recall</code><p class="text-slate-400 mt-1">🔍 Search memories</p></div>
+          <div class="p-3 rounded-lg bg-[#1a1a1c]"><code class="text-blue-400">list</code><p class="text-slate-400 mt-1">📋 List all memories</p></div>
+          <div class="p-3 rounded-lg bg-[#1a1a1c]"><code class="text-blue-400">edit</code><p class="text-slate-400 mt-1">✏️ Update a memory</p></div>
+          <div class="p-3 rounded-lg bg-[#1a1a1c]"><code class="text-blue-400">delete</code><p class="text-slate-400 mt-1">🗑️ Remove a memory</p></div>
         </div>
       </div>
 
       <div class="p-6 rounded-xl border border-slate-800 bg-[#121213]">
-        <h2 class="text-xl font-semibold text-white">Memory Types</h2>
+        <h2 class="text-xl font-semibold text-white">🏷️ Memory Types</h2>
         <div class="mt-4 space-y-3 text-sm">
-          <div class="flex gap-3"><span class="text-cyan-400 font-medium w-24">user</span><span class="text-slate-400">Information about the person (role, goals, expertise)</span></div>
-          <div class="flex gap-3"><span class="text-amber-400 font-medium w-24">feedback</span><span class="text-slate-400">Corrections and confirmations about work approach</span></div>
-          <div class="flex gap-3"><span class="text-emerald-400 font-medium w-24">project</span><span class="text-slate-400">Ongoing work context (who, what, why, when)</span></div>
-          <div class="flex gap-3"><span class="text-purple-400 font-medium w-24">reference</span><span class="text-slate-400">External system pointers (URLs, dashboard links)</span></div>
+          <div class="flex gap-3"><span class="text-cyan-400 font-medium w-24">👤 user</span><span class="text-slate-400">Information about the person (role, goals, expertise)</span></div>
+          <div class="flex gap-3"><span class="text-amber-400 font-medium w-24">💬 feedback</span><span class="text-slate-400">Corrections and confirmations about work approach</span></div>
+          <div class="flex gap-3"><span class="text-emerald-400 font-medium w-24">📌 project</span><span class="text-slate-400">Ongoing work context (who, what, why, when)</span></div>
+          <div class="flex gap-3"><span class="text-purple-400 font-medium w-24">🔗 reference</span><span class="text-slate-400">External system pointers (URLs, dashboard links)</span></div>
         </div>
       </div>
     </div>
 
     <nav class="mt-12 flex gap-4">
-      <a href="changelog.html" class="px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium text-sm hover:border-blue-500 hover:text-blue-400 transition-all">Changelog</a>
-      <a href="https://github.com/javimosch/sick-memory" class="px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium text-sm hover:border-blue-500 hover:text-blue-400 transition-all">GitHub →</a>
+      <a href="changelog.html" class="px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium text-sm hover:border-blue-500 hover:text-blue-400 transition-all">📋 Changelog</a>
+      <a href="https://github.com/javimosch/sick-memory" class="px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium text-sm hover:border-blue-500 hover:text-blue-400 transition-all">⭐ GitHub →</a>
+      <a href="https://github.com/javimosch/supercli" class="px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium text-sm hover:border-blue-500 hover:text-blue-400 transition-all">⚡ supercli →</a>
     </nav>
 
     <footer class="mt-16 pt-8 border-t border-slate-800 text-slate-500 text-sm">
