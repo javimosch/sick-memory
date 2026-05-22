@@ -296,12 +296,16 @@ func buildSearchIndex(memoryPath string) (*SearchIndex, error) {
 		keywords := extractKeywords(fullText)
 		
 		// Update term frequencies
+		seen := make(map[string]bool)
 		for _, keyword := range keywords {
 			if index.TermFreq[keyword] == nil {
 				index.TermFreq[keyword] = make(map[string]int)
 			}
 			index.TermFreq[keyword][memory.ID]++
-			index.DocFreq[keyword]++
+			if !seen[keyword] {
+				index.DocFreq[keyword]++
+				seen[keyword] = true
+			}
 		}
 		
 		// Store memory metadata
@@ -391,6 +395,22 @@ func searchMemories(index *SearchIndex, query string) []SearchResult {
 			score += 2.0 // Boost for exact phrase match
 		}
 		
+		// Word-overlap fallback: when TF-IDF and exact phrase both give 0,
+		// score by how many individual query keywords exist as substrings.
+		// Handles cases like "UI design" matching "UI/Design" or
+		// "disk cleanup" matching "disk-cleanup".
+		if score == 0 && len(queryKeywords) > 0 {
+			matchedWords := 0
+			for _, kw := range queryKeywords {
+				if strings.Contains(lowerContent, kw) {
+					matchedWords++
+				}
+			}
+			if matchedWords > 0 {
+				score = (float64(matchedWords) / float64(len(queryKeywords))) * 2.0
+			}
+		}
+		
 		// Recency boost (more recent = higher score)
 		hoursSinceCreation := time.Since(memory.Created).Hours()
 		if hoursSinceCreation < 24 {
@@ -434,8 +454,12 @@ func loadSearchIndex(memoryPath string) (*SearchIndex, error) {
 		}
 	}
 	
-	// Build index from scratch
-	return buildSearchIndex(memoryPath)
+	// Build index from scratch and cache it
+	index, err := buildSearchIndex(memoryPath)
+	if err == nil {
+		saveSearchIndex(memoryPath, index)
+	}
+	return index, err
 }
 
 func saveSearchIndex(memoryPath string, index *SearchIndex) error {
@@ -587,7 +611,14 @@ created: %d
 func handleRecall(cfg *Config) {
 	query := ""
 	if len(os.Args) > 2 {
-		query = strings.Join(os.Args[2:], " ")
+		queryParts := []string{}
+		for _, arg := range os.Args[2:] {
+			if arg == "--json" || arg == "-j" || arg == "--no-interactive" || arg == "-y" || strings.HasPrefix(arg, "--memory-dir") {
+				continue
+			}
+			queryParts = append(queryParts, arg)
+		}
+		query = strings.Join(queryParts, " ")
 	}
 
 	// Load or build search index
