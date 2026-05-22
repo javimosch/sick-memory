@@ -3,14 +3,32 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
 
 const Version = "0.1.0"
+
+// Common stop words for keyword extraction
+var stopWords = map[string]bool{
+	"a": true, "an": true, "and": true, "are": true, "as": true, "at": true, "be": true, "by": true, "for": true, "from": true,
+	"has": true, "have": true, "he": true, "in": true, "is": true, "it": true, "its": true, "of": true, "on": true, "that": true,
+	"the": true, "to": true, "was": true, "were": true, "will": true, "with": true, "this": true, "but": true,
+	"they": true, "or": true, "one": true, "had": true, "word": true, "not": true,
+	"what": true, "all": true, "we": true, "when": true, "your": true, "can": true, "said": true, "there": true,
+	"use": true, "each": true, "which": true, "she": true, "do": true, "how": true, "their": true, "if": true,
+	"up": true, "other": true, "about": true, "out": true, "many": true, "then": true, "them": true, "these": true,
+	"so": true, "some": true, "her": true, "would": true, "make": true, "like": true, "him": true, "into": true, "time": true,
+	"look": true, "two": true, "more": true, "write": true, "go": true, "see": true, "number": true, "no": true,
+	"way": true, "could": true, "people": true, "my": true, "than": true, "first": true, "been": true, "call": true,
+	"who": true, "oil": true, "sit": true, "now": true, "find": true, "down": true, "day": true, "did": true, "get": true,
+	"come": true, "made": true, "may": true, "part": true,
+}
 
 var (
 	jsonOutput     bool
@@ -37,6 +55,22 @@ type Memory struct {
 	Type        string    `json:"type"`
 	Created     time.Time `json:"created"`
 	Content     string    `json:"content"`
+}
+
+type SearchIndex struct {
+	TermFreq   map[string]map[string]int // term -> (memoryID -> frequency)
+	DocFreq    map[string]int             // term -> document frequency
+	DocCount   int                        // total number of documents
+	Memories   map[string]Memory          // memoryID -> Memory metadata
+}
+
+type SearchResult struct {
+	MemoryID    string  `json:"memory_id"`
+	Score       float64 `json:"score"`
+	Title       string  `json:"title"`
+	Content     string  `json:"content"`
+	MemoryType  string  `json:"memory_type"`
+	Created     string  `json:"created"`
 }
 
 type ErrorResponse struct {
@@ -204,6 +238,215 @@ func loadGlobalConfig() GlobalConfig {
 	return config
 }
 
+// Search functions for pseudo semantic search
+
+func extractKeywords(text string) []string {
+	// Convert to lowercase and split into words
+	text = strings.ToLower(text)
+	words := strings.Fields(text)
+	
+	var keywords []string
+	for _, word := range words {
+		// Remove punctuation
+		word = strings.Trim(word, ".,!?;:\"'()[]{}")
+		if len(word) > 2 && !stopWords[word] {
+			keywords = append(keywords, word)
+		}
+	}
+	return keywords
+}
+
+func buildSearchIndex(memoryPath string) (*SearchIndex, error) {
+	index := &SearchIndex{
+		TermFreq: make(map[string]map[string]int),
+		DocFreq:  make(map[string]int),
+		Memories: make(map[string]Memory),
+	}
+	
+	files, err := os.ReadDir(memoryPath)
+	if err != nil {
+		return nil, err
+	}
+	
+	for _, file := range files {
+		if file.IsDir() || strings.HasPrefix(file.Name(), ".") {
+			continue
+		}
+
+		// Only process memory files (memory_*.md pattern)
+		if !strings.HasPrefix(file.Name(), "memory_") || !strings.HasSuffix(file.Name(), ".md") {
+			continue
+		}
+
+		// Read memory file
+		filePath := filepath.Join(memoryPath, file.Name())
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			continue
+		}
+
+		// Parse memory
+		memory := parseMemory(string(content), file.Name())
+		if memory.ID == "" {
+			continue
+		}
+		
+		// Extract keywords from content and description
+		fullText := memory.Description + " " + memory.Content
+		keywords := extractKeywords(fullText)
+		
+		// Update term frequencies
+		for _, keyword := range keywords {
+			if index.TermFreq[keyword] == nil {
+				index.TermFreq[keyword] = make(map[string]int)
+			}
+			index.TermFreq[keyword][memory.ID]++
+			index.DocFreq[keyword]++
+		}
+		
+		// Store memory metadata
+		index.Memories[memory.ID] = memory
+	}
+	
+	index.DocCount = len(index.Memories)
+	return index, nil
+}
+
+func parseMemory(content, filename string) Memory {
+	lines := strings.Split(content, "\n")
+	var memory Memory
+	memory.ID = strings.TrimSuffix(filename, ".md")
+	
+	inFrontmatter := false
+	var contentLines []string
+	
+	for _, line := range lines {
+		if line == "---" {
+			if !inFrontmatter {
+				inFrontmatter = true
+				continue
+			} else {
+				inFrontmatter = false
+				continue
+			}
+		}
+		
+		if inFrontmatter {
+			if strings.HasPrefix(line, "name:") {
+				memory.Name = strings.TrimSpace(strings.TrimPrefix(line, "name:"))
+			} else if strings.HasPrefix(line, "description:") {
+				memory.Description = strings.TrimSpace(strings.TrimPrefix(line, "description:"))
+			} else if strings.HasPrefix(line, "type:") {
+				memory.Type = strings.TrimSpace(strings.TrimPrefix(line, "type:"))
+			} else if strings.HasPrefix(line, "created:") {
+				if timestamp, err := time.Parse(strings.Trim(strings.TrimPrefix(line, "created:"), " "), time.RFC3339); err == nil {
+					memory.Created = timestamp
+				}
+			}
+		} else {
+			contentLines = append(contentLines, line)
+		}
+	}
+	
+	memory.Content = strings.Join(contentLines, "\n")
+	return memory
+}
+
+func calculateTFIDF(index *SearchIndex, term string, memoryID string) float64 {
+	if index.DocCount == 0 {
+		return 0
+	}
+	
+	// Term frequency in this document
+	tf := float64(index.TermFreq[term][memoryID])
+	
+	// Document frequency (how many docs contain this term)
+	df := float64(index.DocFreq[term])
+	
+	// IDF calculation
+	idf := math.Log(float64(index.DocCount+1) / (df + 1))
+	
+	return tf * idf
+}
+
+func searchMemories(index *SearchIndex, query string) []SearchResult {
+	queryKeywords := extractKeywords(query)
+	results := make([]SearchResult, 0)
+	
+	for memoryID, memory := range index.Memories {
+		score := 0.0
+		
+		// Calculate TF-IDF score for matching terms
+		for _, keyword := range queryKeywords {
+			if index.TermFreq[keyword] != nil && index.TermFreq[keyword][memoryID] > 0 {
+				tfidf := calculateTFIDF(index, keyword, memoryID)
+				score += tfidf
+			}
+		}
+		
+		// Boost score for exact phrase matches
+		lowerContent := strings.ToLower(memory.Content + " " + memory.Description)
+		lowerQuery := strings.ToLower(query)
+		if strings.Contains(lowerContent, lowerQuery) {
+			score += 2.0 // Boost for exact phrase match
+		}
+		
+		// Recency boost (more recent = higher score)
+		hoursSinceCreation := time.Since(memory.Created).Hours()
+		if hoursSinceCreation < 24 {
+			score *= 1.2 // Boost for memories < 24h old
+		} else if hoursSinceCreation < 168 {
+			score *= 1.1 // Boost for memories < 7 days old
+		}
+		
+		// Type-based boosting (project memories are more relevant for context)
+		if memory.Type == "project" {
+			score *= 1.15
+		}
+		
+		if score > 0 {
+			results = append(results, SearchResult{
+				MemoryID:   memoryID,
+				Score:      score,
+				Title:      memory.Name,
+				Content:    memory.Content,
+				MemoryType: memory.Type,
+				Created:    memory.Created.Format(time.RFC3339),
+			})
+		}
+	}
+	
+	// Sort by score (descending)
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Score > results[j].Score
+	})
+	
+	return results
+}
+
+func loadSearchIndex(memoryPath string) (*SearchIndex, error) {
+	// Try to load cached index
+	indexFile := filepath.Join(memoryPath, "search_index.json")
+	if data, err := os.ReadFile(indexFile); err == nil {
+		var index SearchIndex
+		if err := json.Unmarshal(data, &index); err == nil {
+			return &index, nil
+		}
+	}
+	
+	// Build index from scratch
+	return buildSearchIndex(memoryPath)
+}
+
+func saveSearchIndex(memoryPath string, index *SearchIndex) error {
+	indexFile := filepath.Join(memoryPath, "search_index.json")
+	data, err := json.MarshalIndent(index, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(indexFile, data, 0644)
+}
+
 func printHelp() {
 	fmt.Println("sick-memory - File-based memory system for AI coding agents")
 	fmt.Println()
@@ -322,19 +565,13 @@ created: %d
 		os.Exit(92)
 	}
 
-	// Update index
-	indexPath := filepath.Join(cfg.MemoryDir, "MEMORY.md")
-	indexFile, err := os.OpenFile(indexPath, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		errorResponse(92, "resource_error", fmt.Sprintf("Failed to open index file: %v", err), false)
-		os.Exit(92)
-	}
-	defer indexFile.Close()
-
-	indexEntry := fmt.Sprintf("- [Memory %s](%s) -- %s\n", memoryID, filename, content)
-	if _, err := indexFile.WriteString(indexEntry); err != nil {
-		errorResponse(92, "resource_error", fmt.Sprintf("Failed to update index: %v", err), false)
-		os.Exit(92)
+	// Update search index
+	if cfg.GlobalConfig.AutoIndex {
+		// Rebuild search index for semantic search
+		index, err := buildSearchIndex(cfg.MemoryDir)
+		if err == nil {
+			saveSearchIndex(cfg.MemoryDir, index)
+		}
 	}
 
 	if jsonOutput {
@@ -348,40 +585,73 @@ created: %d
 }
 
 func handleRecall(cfg *Config) {
-	// TODO: Implement intelligent retrieval
-	// For now, list all memories
-	memoryPath := cfg.MemoryDir
-	
-	files, err := os.ReadDir(memoryPath)
+	query := ""
+	if len(os.Args) > 2 {
+		query = strings.Join(os.Args[2:], " ")
+	}
+
+	// Load or build search index
+	index, err := loadSearchIndex(cfg.MemoryDir)
 	if err != nil {
 		errorResponse(92, "resource_not_found", "Memory directory not found", false)
 		os.Exit(92)
 	}
-
-	memories := []Memory{}
-	for _, file := range files {
-		if !file.IsDir() && len(file.Name()) > 7 && file.Name()[:7] == "memory_" && file.Name()[len(file.Name())-3:] == ".md" {
-			filePath := filepath.Join(memoryPath, file.Name())
-			content, err := os.ReadFile(filePath)
-			if err != nil {
-				continue
-			}
-			
-			memories = append(memories, Memory{
-				ID:      file.Name(),
-				Content: string(content),
+	
+	if query == "" {
+		// If no query, return all memories sorted by recency
+		var allMemories []SearchResult
+		for _, memory := range index.Memories {
+			hoursSinceCreation := time.Since(memory.Created).Hours()
+			score := 100.0 - hoursSinceCreation // Newer = higher score
+			allMemories = append(allMemories, SearchResult{
+				MemoryID:   memory.ID,
+				Score:      score,
+				Title:      memory.Name,
+				Content:    memory.Content,
+				MemoryType: memory.Type,
+				Created:    memory.Created.Format(time.RFC3339),
 			})
 		}
-	}
-
-	if jsonOutput {
-		successResponse(memories)
-	} else {
-		fmt.Printf("Memories in %s:\n\n", memoryPath)
-		for _, mem := range memories {
-			fmt.Printf("ID: %s\n%s\n\n", mem.ID, mem.Content)
+		
+		// Sort by score (newest first)
+		sort.Slice(allMemories, func(i, j int) bool {
+			return allMemories[i].Score > allMemories[j].Score
+		})
+		
+		if jsonOutput {
+			successResponse(allMemories)
+		} else {
+			fmt.Printf("All memories in %s:\n\n", cfg.MemoryDir)
+			for _, result := range allMemories {
+				fmt.Printf("ID: %s\n---\n%s\n\n", result.MemoryID, result.Content)
+			}
+			fmt.Printf("Total memories: %d\n", len(allMemories))
 		}
-		fmt.Printf("Total memories: %d\n", len(memories))
+		return
+	}
+	
+	// Perform semantic search
+	results := searchMemories(index, query)
+	
+	if len(results) == 0 {
+		if jsonOutput {
+			successResponse([]SearchResult{})
+		} else {
+			fmt.Printf("No memories found matching: %s\n", query)
+		}
+		return
+	}
+	
+	if jsonOutput {
+		successResponse(results)
+	} else {
+		fmt.Printf("Found %d memories matching: %s\n\n", len(results), query)
+		for _, result := range results {
+			fmt.Printf("ID: %s (score: %.2f)\n", result.MemoryID, result.Score)
+			fmt.Printf("Type: %s\n", result.MemoryType)
+			fmt.Printf("Created: %s\n", result.Created)
+			fmt.Printf("%s\n\n", result.Content)
+		}
 	}
 }
 
