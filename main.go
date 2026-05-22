@@ -417,12 +417,13 @@ func handleList(cfg *Config) {
 }
 
 func handleEdit(cfg *Config) {
-	if len(os.Args) < 3 {
-		errorResponse(80, "missing_argument", "Memory ID required for edit", false)
+	if len(os.Args) < 4 {
+		errorResponse(80, "missing_argument", "Memory ID and new content required for edit. Usage: sick-memory edit <id> <new content>", false)
 		os.Exit(80)
 	}
 
 	memoryID := os.Args[2]
+	newContent := strings.Join(os.Args[3:], " ")
 	
 	// Find the memory file
 	memoryPath := cfg.MemoryDir
@@ -459,7 +460,6 @@ func handleEdit(cfg *Config) {
 	// Parse the existing memory to separate frontmatter from content
 	lines := strings.Split(string(content), "\n")
 	var frontmatter []string
-	var contentLines []string
 	inFrontmatter := false
 	
 	for _, line := range lines {
@@ -477,53 +477,7 @@ func handleEdit(cfg *Config) {
 		
 		if inFrontmatter {
 			frontmatter = append(frontmatter, line)
-		} else {
-			contentLines = append(contentLines, line)
 		}
-	}
-	
-	// Get new content from command line or editor
-	var newContent string
-	if len(os.Args) > 3 {
-		// Use command line argument
-		newContent = strings.Join(os.Args[3:], " ")
-	} else {
-		// Use environment variable or prompt
-		editor := os.Getenv("EDITOR")
-		if editor == "" {
-			editor = "vi" // default editor
-		}
-		
-		// Create temp file with current content
-		tempFile := memoryFile + ".tmp"
-		tempContent := strings.Join(contentLines, "\n")
-		if err := os.WriteFile(tempFile, []byte(tempContent), 0644); err != nil {
-			errorResponse(110, "temp_file_error", fmt.Sprintf("Cannot create temp file: %v", err), false)
-			os.Exit(110)
-		}
-		
-		// Open editor
-		cmd := exec.Command(editor, tempFile)
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		
-		if err := cmd.Run(); err != nil {
-			os.Remove(tempFile)
-			errorResponse(110, "editor_error", fmt.Sprintf("Editor failed: %v", err), false)
-			os.Exit(110)
-		}
-		
-		// Read edited content
-		editedContent, err := os.ReadFile(tempFile)
-		if err != nil {
-			os.Remove(tempFile)
-			errorResponse(110, "read_error", fmt.Sprintf("Cannot read edited file: %v", err), false)
-			os.Exit(110)
-		}
-		
-		newContent = string(editedContent)
-		os.Remove(tempFile)
 	}
 	
 	// Update description based on new content (first line or first 50 chars)
@@ -562,15 +516,16 @@ func handleEdit(cfg *Config) {
 		os.Exit(110)
 	}
 	
+	response := map[string]interface{}{
+		"version": Version,
+		"data": map[string]interface{}{
+			"id":          memoryID,
+			"status":      "updated",
+			"description": description,
+		},
+	}
+	
 	if jsonOutput {
-		response := map[string]interface{}{
-			"version": Version,
-			"data": map[string]interface{}{
-				"id":          memoryID,
-				"status":      "updated",
-				"description": description,
-			},
-		}
 		jsonData, _ := json.MarshalIndent(response, "", "  ")
 		fmt.Println(string(jsonData))
 	} else {
