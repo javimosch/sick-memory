@@ -38,22 +38,58 @@
 
       <!-- Product Changelog -->
       <div id="content-product" class="tab-content active">
-# May 2026 — Product Summary
+<div class="feature-card rounded-xl p-6">
+  <div class="flex items-start gap-4">
+    <div class="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+      <span class="text-2xl">🔍</span>
+    </div>
+    <div>
+      <h3 class="text-xl font-semibold text-white mb-2">Semantic Search Engine</h3>
+      <p class="text-slate-400 leading-relaxed">Search across all your memories with natural language queries using TF-IDF scoring, exact phrase boosting, and word-overlap fallback. The search index is cached for fast subsequent lookups.</p>
+    </div>
+  </div>
+</div>
 
-## Semantic Search Engine
-The biggest update this month: sick-memory now has a proper search engine with TF-IDF scoring, exact phrase boosting, and word-overlap fallback. Search across all your memories with natural language queries and get ranked results. The search index is cached for fast subsequent lookups.
+<div class="feature-card rounded-xl p-6">
+  <div class="flex items-start gap-4">
+    <div class="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+      <span class="text-2xl">✏️</span>
+    </div>
+    <div>
+      <h3 class="text-xl font-semibold text-white mb-2">Edit & Delete Support</h3>
+      <p class="text-slate-400 leading-relaxed">Edit existing memories and delete outdated ones directly from the CLI. No more manual file editing — <code class="text-sm bg-white/5 px-1.5 py-0.5 rounded">edit</code> and <code class="text-sm bg-white/5 px-1.5 py-0.5 rounded">delete</code> commands work non-interactively, making them agent-friendly.</p>
+    </div>
+  </div>
+</div>
 
-## Edit & Delete Support
-You can now edit existing memories and delete outdated ones directly from the CLI. No more manual file editing — `edit` and `delete` commands work non-interactively, making them agent-friendly.
+<div class="feature-card rounded-xl p-6">
+  <div class="flex items-start gap-4">
+    <div class="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+      <span class="text-2xl">🤖</span>
+    </div>
+    <div>
+      <h3 class="text-xl font-semibold text-white mb-2">Agent-First Design</h3>
+      <p class="text-slate-400 leading-relaxed">Every command supports JSON output and requires no interactive prompts. Integrates naturally with Claude Code, OpenCode, and Copilot via bridge commands that auto-generate configuration files.</p>
+    </div>
+  </div>
+</div>
 
-## Agent-First Design
-Every command now supports JSON output and requires no interactive prompts. sick-memory integrates naturally with Claude Code, OpenCode, and Copilot via bridge commands that auto-generate configuration files.
-
-## Bug Fixes
-- TF-IDF now correctly counts document frequency (was counting total occurrences, causing negative scores for common terms)
-- `--json` flag no longer leaks into search queries
-- Search index is now cached on recall, not just on remember
-- Word-overlap fallback handles queries like "UI design" matching "UI/Design" or "disk cleanup" matching "disk-cleanup"
+<div class="feature-card rounded-xl p-6">
+  <div class="flex items-start gap-4">
+    <div class="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+      <span class="text-2xl">🐛</span>
+    </div>
+    <div>
+      <h3 class="text-xl font-semibold text-white mb-2">Bug Fixes</h3>
+      <ul class="text-slate-400 leading-relaxed space-y-1 list-disc list-inside">
+        <li>TF-IDF now correctly counts document frequency (was counting total occurrences, causing negative scores)</li>
+        <li><code class="text-sm bg-white/5 px-1.5 py-0.5 rounded">--json</code> flag no longer leaks into search queries</li>
+        <li>Search index is now cached on recall, not just on remember</li>
+        <li>Word-overlap fallback handles queries like "UI design" matching "UI/Design"</li>
+      </ul>
+    </div>
+  </div>
+</div>
 
       </div>
 
@@ -66,6 +102,8 @@ Every command now supports JSON output and requires no interactive prompts. sick
             <span>💼</span> Other
           </h2>
           <ul class="space-y-2 text-slate-300">
+            <li><span class="text-slate-500 text-sm mr-3">[22/05]</span>Add emojis to docs page and link supercli repo</li>
+            <li><span class="text-slate-500 text-sm mr-3">[22/05]</span>Add static docs page and changelog for May 2026</li>
             <li><span class="text-slate-500 text-sm mr-3">[22/05]</span>Fix search indexing bugs: DocFreq per-document, --json flag leak, cache on recall, word-overlap fallback</li>
             <li><span class="text-slate-500 text-sm mr-3">[22/05]</span>Implement pseudo-semantic search with TF-IDF scoring</li>
             <li><span class="text-slate-500 text-sm mr-3">[22/05]</span>Make edit command fully non-interactive and agent-first</li>
