@@ -1,5 +1,14 @@
 # sick-memory
 
+```
+      😰
+     /  \
+    | 🤢 |
+     \  /
+      🤮
+     💾💾
+```
+
 File-based memory system for AI coding agents with centralized storage, git-based scoping, and worktree support. Inspired by Claude Code's memory system, sick-memory provides persistent knowledge storage across sessions using markdown files with YAML frontmatter.
 
 ## Features
