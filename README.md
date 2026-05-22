@@ -2,6 +2,12 @@
 
 File-based memory system for AI coding agents with centralized storage, git-based scoping, and worktree support. Inspired by Claude Code's memory system, sick-memory provides persistent knowledge storage across sessions using markdown files with YAML frontmatter.
 
+## Name Disclaimer
+
+The name "sick-memory" is a play on "sick" (meaning "cool" in slang) combined with "memory" - not actually being sick! The vomiting emoji 🤮 represents the idea of "vomiting memories" for persistent storage.
+
+**Implementation Note**: This project was initially implemented in Zig but migrated to Go because Zig 0.16.0 had API compatibility issues with `std.process.argsAlloc` and `std.os.argv` not being available. Go was chosen following SuperCLI recommendations as it's the standard for plugins with better ecosystem support and API stability.
+
 ## Features
 
 - **Centralized Storage**: All memories stored in `~/.sick-memory/` with git-based project scoping
