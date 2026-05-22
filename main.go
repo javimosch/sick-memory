@@ -417,15 +417,219 @@ func handleList(cfg *Config) {
 }
 
 func handleEdit(cfg *Config) {
-	// TODO: Implement edit functionality
-	errorResponse(110, "not_implemented", "Edit functionality not yet implemented", false)
-	os.Exit(110)
+	if len(os.Args) < 3 {
+		errorResponse(80, "missing_argument", "Memory ID required for edit", false)
+		os.Exit(80)
+	}
+
+	memoryID := os.Args[2]
+	
+	// Find the memory file
+	memoryPath := cfg.MemoryDir
+	var memoryFile string
+	
+	// Try to find the memory file by ID
+	files, err := os.ReadDir(memoryPath)
+	if err != nil {
+		errorResponse(92, "memory_not_found", fmt.Sprintf("Cannot read memory directory: %v", err), false)
+		os.Exit(92)
+	}
+	
+	for _, file := range files {
+		// Match either exact ID or ID with memory_ prefix
+		fileName := strings.TrimSuffix(file.Name(), ".md")
+		if fileName == memoryID || fileName == "memory_"+memoryID || strings.HasSuffix(fileName, "_"+memoryID) {
+			memoryFile = filepath.Join(memoryPath, file.Name())
+			break
+		}
+	}
+	
+	if memoryFile == "" {
+		errorResponse(92, "memory_not_found", fmt.Sprintf("Memory with ID %s not found", memoryID), false)
+		os.Exit(92)
+	}
+	
+	// Read existing memory
+	content, err := os.ReadFile(memoryFile)
+	if err != nil {
+		errorResponse(110, "read_error", fmt.Sprintf("Cannot read memory file: %v", err), false)
+		os.Exit(110)
+	}
+	
+	// Parse the existing memory to separate frontmatter from content
+	lines := strings.Split(string(content), "\n")
+	var frontmatter []string
+	var contentLines []string
+	inFrontmatter := false
+	
+	for _, line := range lines {
+		if line == "---" {
+			if !inFrontmatter {
+				inFrontmatter = true
+				frontmatter = append(frontmatter, line)
+				continue
+			} else {
+				inFrontmatter = false
+				frontmatter = append(frontmatter, line)
+				continue
+			}
+		}
+		
+		if inFrontmatter {
+			frontmatter = append(frontmatter, line)
+		} else {
+			contentLines = append(contentLines, line)
+		}
+	}
+	
+	// Get new content from command line or editor
+	var newContent string
+	if len(os.Args) > 3 {
+		// Use command line argument
+		newContent = strings.Join(os.Args[3:], " ")
+	} else {
+		// Use environment variable or prompt
+		editor := os.Getenv("EDITOR")
+		if editor == "" {
+			editor = "vi" // default editor
+		}
+		
+		// Create temp file with current content
+		tempFile := memoryFile + ".tmp"
+		tempContent := strings.Join(contentLines, "\n")
+		if err := os.WriteFile(tempFile, []byte(tempContent), 0644); err != nil {
+			errorResponse(110, "temp_file_error", fmt.Sprintf("Cannot create temp file: %v", err), false)
+			os.Exit(110)
+		}
+		
+		// Open editor
+		cmd := exec.Command(editor, tempFile)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		
+		if err := cmd.Run(); err != nil {
+			os.Remove(tempFile)
+			errorResponse(110, "editor_error", fmt.Sprintf("Editor failed: %v", err), false)
+			os.Exit(110)
+		}
+		
+		// Read edited content
+		editedContent, err := os.ReadFile(tempFile)
+		if err != nil {
+			os.Remove(tempFile)
+			errorResponse(110, "read_error", fmt.Sprintf("Cannot read edited file: %v", err), false)
+			os.Exit(110)
+		}
+		
+		newContent = string(editedContent)
+		os.Remove(tempFile)
+	}
+	
+	// Update description based on new content (first line or first 50 chars)
+	description := newContent
+	if len(description) > 50 {
+		description = description[:50] + "..."
+	}
+	if idx := strings.Index(description, "\n"); idx != -1 && idx < 50 {
+		description = description[:idx]
+	}
+	
+	// Update frontmatter with new description
+	updatedFrontmatter := make([]string, 0, len(frontmatter))
+	for i, line := range frontmatter {
+		if strings.HasPrefix(line, "description:") {
+			updatedFrontmatter = append(updatedFrontmatter, fmt.Sprintf("description: %s", description))
+		} else if i > 0 && strings.HasPrefix(frontmatter[i-1], "description:") {
+			// Skip continuation lines
+			continue
+		} else {
+			updatedFrontmatter = append(updatedFrontmatter, line)
+		}
+	}
+	
+	// Reconstruct the file
+	var updatedContent strings.Builder
+	for _, line := range updatedFrontmatter {
+		updatedContent.WriteString(line + "\n")
+	}
+	updatedContent.WriteString("\n")
+	updatedContent.WriteString(newContent)
+	
+	// Write back to file
+	if err := os.WriteFile(memoryFile, []byte(updatedContent.String()), 0644); err != nil {
+		errorResponse(110, "write_error", fmt.Sprintf("Cannot write memory file: %v", err), false)
+		os.Exit(110)
+	}
+	
+	if jsonOutput {
+		response := map[string]interface{}{
+			"version": Version,
+			"data": map[string]interface{}{
+				"id":          memoryID,
+				"status":      "updated",
+				"description": description,
+			},
+		}
+		jsonData, _ := json.MarshalIndent(response, "", "  ")
+		fmt.Println(string(jsonData))
+	} else {
+		fmt.Printf("Memory %s updated successfully\n", memoryID)
+	}
 }
 
 func handleDelete(cfg *Config) {
-	// TODO: Implement delete functionality
-	errorResponse(110, "not_implemented", "Delete functionality not yet implemented", false)
-	os.Exit(110)
+	if len(os.Args) < 3 {
+		errorResponse(80, "missing_argument", "Memory ID required for delete", false)
+		os.Exit(80)
+	}
+
+	memoryID := os.Args[2]
+	
+	// Find the memory file
+	memoryPath := cfg.MemoryDir
+	var memoryFile string
+	
+	// Try to find the memory file by ID
+	files, err := os.ReadDir(memoryPath)
+	if err != nil {
+		errorResponse(92, "memory_not_found", fmt.Sprintf("Cannot read memory directory: %v", err), false)
+		os.Exit(92)
+	}
+	
+	for _, file := range files {
+		// Match either exact ID or ID with memory_ prefix
+		fileName := strings.TrimSuffix(file.Name(), ".md")
+		if fileName == memoryID || fileName == "memory_"+memoryID || strings.HasSuffix(fileName, "_"+memoryID) {
+			memoryFile = filepath.Join(memoryPath, file.Name())
+			break
+		}
+	}
+	
+	if memoryFile == "" {
+		errorResponse(92, "memory_not_found", fmt.Sprintf("Memory with ID %s not found", memoryID), false)
+		os.Exit(92)
+	}
+	
+	// Delete the memory file
+	if err := os.Remove(memoryFile); err != nil {
+		errorResponse(110, "delete_error", fmt.Sprintf("Cannot delete memory file: %v", err), false)
+		os.Exit(110)
+	}
+	
+	if jsonOutput {
+		response := map[string]interface{}{
+			"version": Version,
+			"data": map[string]interface{}{
+				"id":     memoryID,
+				"status": "deleted",
+			},
+		}
+		jsonData, _ := json.MarshalIndent(response, "", "  ")
+		fmt.Println(string(jsonData))
+	} else {
+		fmt.Printf("Memory %s deleted successfully\n", memoryID)
+	}
 }
 
 func handleStatus(cfg *Config) {
