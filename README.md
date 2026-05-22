@@ -4,7 +4,7 @@ File-based memory system for AI coding agents with centralized storage, git-base
 
 ## Name Disclaimer
 
-The name "sick-memory" is a play on "sick" (meaning "cool" in slang) combined with "memory" - not actually being sick! The vomiting emoji 🤮 represents the idea of "vomiting memories" for persistent storage. Additionally, "sick" sounds phonetically similar to "zig" - the original implementation language before migrating to Go.
+The name "sick-memory" combines "sick" with "memory" - the vomiting emoji 🤮 represents the idea of "vomiting memories" for persistent storage. Additionally, "sick" sounds phonetically similar to "zig" - the original implementation language before migrating to Go.
 
 **Implementation Note**: This project was initially implemented in Zig but migrated to Go because Zig 0.16.0 had API compatibility issues with `std.process.argsAlloc` and `std.os.argv` not being available. Go was chosen following SuperCLI recommendations as it's the standard for plugins with better ecosystem support and API stability.
 
