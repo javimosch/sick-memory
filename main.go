@@ -1028,6 +1028,38 @@ sick-memory remember "Use real database instances in tests, not mocks"
 sick-memory remember --type feedback "Integration tests must hit real DB"
 %%
 
+## Editing and Deleting
+
+%%bash
+# Edit a memory by ID
+sick-memory edit <id> "Updated content"
+
+# Delete a memory by ID
+sick-memory delete <id>
+%%
+
+## Listing and Searching
+
+%%bash
+# List all memories
+sick-memory list
+
+# Search with natural language
+sick-memory recall "database configuration"
+%%
+
+## Aliases
+
+%%bash
+sick-memory keep <content>     # alias for remember
+sick-memory search <query>     # alias for recall
+sick-memory ls                 # alias for list
+%%
+
+## JSON Output
+
+Add --json to any command for machine-readable output.
+
 ## Memory Location
 
 Memories are stored in: %s
@@ -1043,6 +1075,9 @@ The following bridge commands are available:
 - /sm - Access sick-memory functionality
 - /sm remember <content> - Add a memory
 - /sm recall [query] - Retrieve memories
+- /sm list - List all memories
+- /sm edit <id> - Edit a memory by ID
+- /sm delete <id> - Delete a memory by ID
 - /sm status - Check memory system status
 - /sm config - Show configuration and storage location
 `, cfg.MemoryDir)
