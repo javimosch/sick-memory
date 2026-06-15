@@ -2,11 +2,24 @@
 
 File-based memory system for AI coding agents with centralized storage, git-based scoping, and worktree support. Inspired by Claude Code's memory system, sick-memory provides persistent knowledge storage across sessions using markdown files with YAML frontmatter.
 
-## Name Disclaimer
+## Table of Contents
 
-The name "sick-memory" combines "sick" with "memory" - the vomiting emoji 🤮 represents the idea of "vomiting memories" for persistent storage. Additionally, "sick" sounds phonetically similar to "zig" - the original implementation language before migrating to Go.
+- [Name](#name)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Storage Architecture](#storage-architecture)
+- [Agent Integration](#agent-integration)
+- [SuperCLI Plugin](#supercli-plugin)
+- [Development](#development)
+- [Documentation](#documentation)
+- [License](#license)
 
-**Implementation Note**: This project was initially implemented in Zig but migrated to Go because Zig 0.16.0 had API compatibility issues with `std.process.argsAlloc` and `std.os.argv` not being available. Go was chosen following SuperCLI recommendations as it's the standard for plugins with better ecosystem support and API stability.
+## Name
+
+"sick-memory" combines "sick" (phonetically similar to "zig") with "memory" — the 🤮 emoji represents "vomiting memories" for persistent storage.
+
+**Implementation note**: Initially implemented in Zig but migrated to Go due to Zig 0.16.0 API compatibility issues. Go was chosen following SuperCLI recommendations for plugin stability.
 
 ## Features
 
@@ -204,14 +217,20 @@ Sick-memory follows a clean room implementation inspired by Claude Code's memory
 - **Output**: Human-readable text with optional JSON
 - **Exit Codes**: Semantic exit codes for programmatic use
 
+## Documentation
+
+Additional documentation is available in the [docs/](docs/) directory:
+
+- [Product changelog](docs/changelog-2026-05-product.md) — May 2026 release notes
+
 ## License
 
-MIT License - see LICENSE file for details
+MIT — see [LICENSE](LICENSE) for details.
 
 ## Author
 
-Javier Leandro Arancibia
+Javier Leandro Arancibia — [LinkedIn](https://www.linkedin.com/in/arancibiajav/)
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions welcome! Please submit a Pull Request.
