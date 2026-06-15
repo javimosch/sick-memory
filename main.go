@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// Version is the current release version of sick-memory.
 const Version = "0.1.0"
 
 // Common stop words for keyword extraction
@@ -36,18 +37,22 @@ var (
 	memoryDir      string
 )
 
+// Config holds the runtime configuration for sick-memory including
+// memory directory paths, global settings, and the current project root.
 type Config struct {
 	MemoryDir      string
 	GlobalConfig   GlobalConfig
 	ProjectRoot    string
 }
 
+// GlobalConfig stores user preferences loaded from ~/.sick-memory/config.json.
 type GlobalConfig struct {
 	DefaultMemoryType string `json:"default_memory_type"`
 	MaxMemorySize     int    `json:"max_memory_size"`
 	AutoIndex         bool   `json:"auto_index"`
 }
 
+// Memory represents a single stored memory with metadata and content.
 type Memory struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
@@ -57,6 +62,7 @@ type Memory struct {
 	Content     string    `json:"content"`
 }
 
+// SearchIndex is the TF-IDF based search index used for semantic memory retrieval.
 type SearchIndex struct {
 	TermFreq   map[string]map[string]int // term -> (memoryID -> frequency)
 	DocFreq    map[string]int             // term -> document frequency
@@ -64,6 +70,7 @@ type SearchIndex struct {
 	Memories   map[string]Memory          // memoryID -> Memory metadata
 }
 
+// SearchResult holds a single search result with its relevance score.
 type SearchResult struct {
 	MemoryID    string  `json:"memory_id"`
 	Score       float64 `json:"score"`
@@ -73,10 +80,12 @@ type SearchResult struct {
 	Created     string  `json:"created"`
 }
 
+// ErrorResponse wraps an error detail for JSON error output.
 type ErrorResponse struct {
 	Error ErrorDetail `json:"error"`
 }
 
+// ErrorDetail describes a structured error with type classification and recovery hint.
 type ErrorDetail struct {
 	Code       int    `json:"code"`
 	Type       string `json:"type"`
@@ -84,6 +93,7 @@ type ErrorDetail struct {
 	Recoverable bool  `json:"recoverable"`
 }
 
+// SuccessResponse wraps successful command output with a version field.
 type SuccessResponse struct {
 	Version string      `json:"version"`
 	Data    interface{} `json:"data"`
