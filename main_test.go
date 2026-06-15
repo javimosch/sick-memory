@@ -2,6 +2,9 @@ package main
 
 import (
 	"math"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -327,5 +330,208 @@ func TestSearchMemoriesWordOverlapFallback(t *testing.T) {
 func TestVersion(t *testing.T) {
 	if Version != "0.1.0" {
 		t.Errorf("Version = %q, want %q", Version, "0.1.0")
+	}
+}
+
+func TestGetProjectMemoryPath(t *testing.T) {
+	path := getProjectMemoryPath("/home/user/my-project")
+	if !strings.Contains(path, "home-user-my-project") {
+		t.Errorf("getProjectMemoryPath() = %q, should contain %q", path, "home-user-my-project")
+	}
+	if !strings.Contains(path, "projects") {
+		t.Errorf("getProjectMemoryPath() = %q, should contain %q", path, "projects")
+	}
+}
+
+func TestSaveAndLoadSearchIndex(t *testing.T) {
+	dir := t.TempDir()
+	index := &SearchIndex{
+		TermFreq: map[string]map[string]int{
+			"hello": {"mem1": 1},
+		},
+		DocFreq: map[string]int{
+			"hello": 1,
+		},
+		DocCount: 1,
+		Memories: map[string]Memory{
+			"mem1": {
+				ID:          "mem1",
+				Name:        "Test",
+				Description: "desc",
+				Type:        "user",
+				Created:     time.Now(),
+				Content:     "hello world",
+			},
+		},
+	}
+
+	err := saveSearchIndex(dir, index)
+	if err != nil {
+		t.Fatalf("saveSearchIndex() error: %v", err)
+	}
+
+	loaded, err := loadSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("loadSearchIndex() error: %v", err)
+	}
+
+	if loaded.DocCount != 1 {
+		t.Errorf("loaded.DocCount = %d, want 1", loaded.DocCount)
+	}
+	if loaded.TermFreq["hello"]["mem1"] != 1 {
+		t.Errorf("loaded.TermFreq[hello][mem1] = %d, want 1", loaded.TermFreq["hello"]["mem1"])
+	}
+	if loaded.Memories["mem1"].Name != "Test" {
+		t.Errorf("loaded.Memories[mem1].Name = %q, want %q", loaded.Memories["mem1"].Name, "Test")
+	}
+}
+
+func TestBuildSearchIndex(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create memory files
+	memories := map[string]string{
+		"memory_001.md": `---
+name: First Memory
+description: First test memory
+type: user
+created: 2024-01-01T00:00:00Z
+---
+Hello world content`,
+		"memory_002.md": `---
+name: Second Memory
+description: Second test memory
+type: project
+created: 2024-01-02T00:00:00Z
+---
+Goodbye world content`,
+	}
+
+	for name, content := range memories {
+		err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644)
+		if err != nil {
+			t.Fatalf("Failed to write test file %s: %v", name, err)
+		}
+	}
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex() error: %v", err)
+	}
+
+	if index.DocCount != 2 {
+		t.Errorf("index.DocCount = %d, want 2", index.DocCount)
+	}
+
+	// Verify term frequencies
+	if index.TermFreq["hello"]["memory_001"] != 1 {
+		t.Errorf("index.TermFreq[hello][memory_001] = %d, want 1", index.TermFreq["hello"]["memory_001"])
+	}
+	if index.TermFreq["goodbye"]["memory_002"] != 1 {
+		t.Errorf("index.TermFreq[goodbye][memory_002] = %d, want 1", index.TermFreq["goodbye"]["memory_002"])
+	}
+
+	// Verify memories stored
+	if _, ok := index.Memories["memory_001"]; !ok {
+		t.Error("index.Memories should contain memory_001")
+	}
+	if _, ok := index.Memories["memory_002"]; !ok {
+		t.Error("index.Memories should contain memory_002")
+	}
+}
+
+func TestBuildSearchIndexSkipsNonMemoryFiles(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create non-memory files that should be skipped
+	for _, name := range []string{".hidden_file", "README.md", "notes.txt", "memory_"} {
+		os.WriteFile(filepath.Join(dir, name), []byte("content"), 0644)
+	}
+
+	// Create one actual memory file
+	os.WriteFile(filepath.Join(dir, "memory_001.md"), []byte(`---
+name: Real
+description: Real memory
+type: user
+---
+Content`), 0644)
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex() error: %v", err)
+	}
+
+	if index.DocCount != 1 {
+		t.Errorf("index.DocCount = %d, want 1 (should only count valid memory files)", index.DocCount)
+	}
+}
+
+func TestBuildSearchIndexNonexistentDir(t *testing.T) {
+	_, err := buildSearchIndex("/nonexistent/path")
+	if err == nil {
+		t.Error("buildSearchIndex() should return error for nonexistent directory")
+	}
+}
+
+func TestSearchMemoriesRecencyBoost(t *testing.T) {
+	now := time.Now()
+	index := &SearchIndex{
+		TermFreq: map[string]map[string]int{
+			"hello": {"old": 1, "recent": 1},
+		},
+		DocFreq: map[string]int{
+			"hello": 1,
+		},
+		DocCount: 2,
+		Memories: map[string]Memory{
+			"old": {
+				ID:      "old",
+				Name:    "Old",
+				Type:    "user",
+				Created: now.Add(-72 * time.Hour),
+				Content: "hello old content",
+			},
+			"recent": {
+				ID:      "recent",
+				Name:    "Recent",
+				Type:    "user",
+				Created: now.Add(-6 * time.Hour),
+				Content: "hello recent content",
+			},
+		},
+	}
+
+	results := searchMemories(index, "hello")
+	if len(results) != 2 {
+		t.Fatalf("searchMemories() = %d results, want 2", len(results))
+	}
+
+	// Recent should be ranked higher (recency boost)
+	if results[0].MemoryID != "recent" {
+		t.Errorf("Top result should be 'recent', got %q", results[0].MemoryID)
+	}
+}
+
+func TestSuccessResponse(t *testing.T) {
+	// Note: successResponse prints to stdout, so we can't easily capture it.
+	// This test just ensures it doesn't panic.
+	data := map[string]string{"key": "value"}
+	successResponse(data)
+}
+
+func TestGetGlobalSickMemoryDir(t *testing.T) {
+	dir := getGlobalSickMemoryDir()
+	if !strings.Contains(dir, ".sick-memory") {
+		t.Errorf("getGlobalSickMemoryDir() = %q, should contain %q", dir, ".sick-memory")
+	}
+}
+
+func TestExtractKeywordsLongText(t *testing.T) {
+	text := "the quick brown fox jumps over the lazy dog near the riverbank"
+	keywords := extractKeywords(text)
+
+	expected := []string{"quick", "brown", "fox", "jumps", "over", "lazy", "dog", "near", "riverbank"}
+	if len(keywords) != len(expected) {
+		t.Errorf("extractKeywords() = %v (%d), want %v (%d)", keywords, len(keywords), expected, len(expected))
 	}
 }
