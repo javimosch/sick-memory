@@ -133,8 +133,8 @@ sick-memory version       # Same as --version
 | Code | Category | Description |
 |------|----------|-------------|
 | 0 | Success | Command completed successfully |
-| 1 | Generic | Generic failure |
-| 80 | Input | Missing argument |
-| 85 | Input | Invalid argument or unknown command |
-| 92 | Resource | Resource not found, memory directory missing |
-| 110 | Internal | Read/write error or not implemented |
+| 1 | Generic failure | Generic failure |
+| 80–89 | Input/validation | Missing argument, invalid argument, unknown command |
+| 90–99 | Resource/state | Resource not found, memory directory missing |
+| 100–109 | Integration/external | External tool errors |
+| 110–119 | Internal software | Read/write error, not implemented |
