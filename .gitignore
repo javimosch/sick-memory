@@ -20,9 +20,6 @@ vendor/
 # Go workspace file
 go.work
 
-# Rust build artifacts (docs verification)
-target/
-
 # IDE specific files
 .vscode/
 .idea/
