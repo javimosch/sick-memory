@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+
 # Build sick-memory CLI - Default
 go build -o sick-memory-default .
 ls -lh sick-memory-default
