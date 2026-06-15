@@ -535,3 +535,115 @@ func TestExtractKeywordsLongText(t *testing.T) {
 		t.Errorf("extractKeywords() = %v (%d), want %v (%d)", keywords, len(keywords), expected, len(expected))
 	}
 }
+
+func TestSearchMemoriesScoreOrder(t *testing.T) {
+	index := &SearchIndex{
+		TermFreq: map[string]map[string]int{
+			"hello": {"mem1": 1, "mem2": 1},
+		},
+		DocFreq: map[string]int{
+			"hello": 1,
+		},
+		DocCount: 2,
+		Memories: map[string]Memory{
+			"mem1": {
+				ID:          "mem1",
+				Name:        "Memory One",
+				Description: "hello",
+				Type:        "project",
+				Created:     time.Now().Add(-1 * time.Hour),
+				Content:     "hello world",
+			},
+			"mem2": {
+				ID:          "mem2",
+				Name:        "Memory Two",
+				Description: "hello",
+				Type:        "user",
+				Created:     time.Now().Add(-24 * time.Hour),
+				Content:     "hello world",
+			},
+		},
+	}
+
+	results := searchMemories(index, "hello")
+	if len(results) != 2 {
+		t.Fatalf("searchMemories() = %d results, want 2", len(results))
+	}
+
+	// mem1 is project type (1.15x boost) and < 24h old (1.2x boost)
+	// mem2 is user type (no boost) and > 24h old (no boost)
+	// mem1 should be ranked higher
+	if results[0].MemoryID != "mem1" {
+		t.Errorf("Top result should be 'mem1', got %q", results[0].MemoryID)
+	}
+}
+
+func TestSearchMemoriesRecencyBoundary(t *testing.T) {
+	now := time.Now()
+	index := &SearchIndex{
+		TermFreq: map[string]map[string]int{
+			"hello": {"m1": 1, "m2": 1, "m3": 1},
+		},
+		DocFreq: map[string]int{
+			"hello": 1,
+		},
+		DocCount: 3,
+		Memories: map[string]Memory{
+			"m1": {
+				ID:      "m1",
+				Name:    "Under 24h",
+				Type:    "user",
+				Created: now.Add(-12 * time.Hour),
+				Content: "hello",
+			},
+			"m2": {
+				ID:      "m2",
+				Name:    "Under 7d",
+				Type:    "user",
+				Created: now.Add(-72 * time.Hour),
+				Content: "hello",
+			},
+			"m3": {
+				ID:      "m3",
+				Name:    "Over 7d",
+				Type:    "user",
+				Created: now.Add(-200 * time.Hour),
+				Content: "hello",
+			},
+		},
+	}
+
+	// Use correct Go syntax - time.Duration subtraction
+	results := searchMemories(index, "hello")
+	if len(results) != 3 {
+		t.Fatalf("searchMemories() = %d results, want 3", len(results))
+	}
+
+	// All have same TF-IDF so recency boost breaks ties
+	if results[0].MemoryID != "m1" {
+		t.Errorf("Top result should be 'm1' (under 24h), got %q", results[0].MemoryID)
+	}
+	if results[1].MemoryID != "m2" {
+		t.Errorf("Second result should be 'm2' (under 7d), got %q", results[1].MemoryID)
+	}
+	if results[2].MemoryID != "m3" {
+		t.Errorf("Third result should be 'm3' (over 7d), got %q", results[2].MemoryID)
+	}
+}
+
+func TestErrorResponse(t *testing.T) {
+	errorResponse(85, "invalid_argument", "test error", false)
+	errorResponse(110, "internal_error", "recoverable error", true)
+}
+
+func TestHandleVersion(t *testing.T) {
+	handleVersion()
+}
+
+func TestGetGlobalSickMemoryDirAlias(t *testing.T) {
+	// Verify getGlobalSickMemoryDir returns a path with home directory
+	dir := getGlobalSickMemoryDir()
+	if dir == ".sick-memory" {
+		t.Error("getGlobalSickMemoryDir() should return a global path, not local fallback")
+	}
+}
