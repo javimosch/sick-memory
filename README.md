@@ -58,17 +58,31 @@ sick-memory init
 # Add a memory
 sick-memory remember "Use real database instances in tests, not mocks"
 
-# Retrieve memories
+# Retrieve memories with natural language search
 sick-memory recall "database"
 
 # List all memories
 sick-memory list
+
+# Edit a memory by ID
+sick-memory edit <id> "Updated content"
+
+# Delete a memory by ID
+sick-memory delete <id>
 
 # Show system status
 sick-memory status
 
 # Show configuration and storage location
 sick-memory config
+```
+
+### Command Aliases
+
+```bash
+sick-memory keep <content>    # alias for remember
+sick-memory search <query>    # alias for recall
+sick-memory ls                # alias for list
 ```
 
 ### Memory Types
