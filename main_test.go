@@ -144,6 +144,9 @@ with multiple lines.`
 	if memory.Type != "user" {
 		t.Errorf("memory.Type = %q, want %q", memory.Type, "user")
 	}
+	if memory.Created.IsZero() {
+		t.Error("memory.Created should not be zero for valid RFC3339 timestamp")
+	}
 	expectedContent := "This is the memory content\nwith multiple lines."
 	if memory.Content != expectedContent {
 		t.Errorf("memory.Content = %q, want %q", memory.Content, expectedContent)
@@ -318,12 +321,12 @@ func TestSearchMemoriesWordOverlapFallback(t *testing.T) {
 		},
 	}
 
-	// Query "UI design" — "design" won't match via TF-IDF in "UI/Setup"
-	// but "ui" will have a TF-IDF match, so we don't hit the fallback.
-	// Let's query something that won't match at all via TF-IDF but will match individual keywords as substrings.
 	results := searchMemories(index, "design")
-	if len(results) > 0 {
-		t.Log("searchMemories returned results for 'design'")
+	if len(results) == 0 {
+		t.Fatal("searchMemories() returned 0 results for 'design' via word-overlap fallback")
+	}
+	if results[0].Score <= 0 {
+		t.Errorf("results[0].Score = %f, want > 0 (word-overlap fallback)", results[0].Score)
 	}
 }
 
