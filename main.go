@@ -607,8 +607,8 @@ func handleRemember(cfg *Config) {
 	content := args[0]
 
 	// Create memory file
-	timestamp := time.Now().Unix()
-	memoryID := fmt.Sprintf("%d", timestamp)
+	now := time.Now()
+	memoryID := fmt.Sprintf("%d", now.Unix())
 	filename := fmt.Sprintf("memory_%s.md", memoryID)
 	createdStr := time.Now().UTC().Format(time.RFC3339)
 	filePath := filepath.Join(cfg.MemoryDir, filename)
