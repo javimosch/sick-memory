@@ -14,6 +14,12 @@ go build -o sick-memory .
 go test ./...
 ```
 
+## Verify am-cloud Access
+
+```bash
+./scripts/test-am-cloud.sh
+```
+
 ## Bridge Configs
 
 Generate agent integration files:
