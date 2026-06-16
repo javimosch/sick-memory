@@ -27,6 +27,10 @@ go.work
 *.swo
 *~
 
+# Test / run artifacts
+search_index.json
+memory_*.md
+
 # OS specific files
 .DS_Store
 Thumbs.db
