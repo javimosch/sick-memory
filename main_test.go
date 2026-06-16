@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -726,6 +727,228 @@ func TestErrorResponse_PrintsValidJSON(t *testing.T) {
 	}
 	if resp.Error.Recoverable {
 		t.Error("Recoverable should be false")
+	}
+}
+
+func TestHandleInit_Success(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &Config{MemoryDir: filepath.Join(tmpDir, "sick-memory")}
+
+	oldJSON := jsonOutput
+	jsonOutput = false
+	defer func() { jsonOutput = oldJSON }()
+
+	got := captureStdout(t, func() {
+		handleInit(cfg)
+	})
+
+	// Verify directory was created
+	if _, err := os.Stat(cfg.MemoryDir); os.IsNotExist(err) {
+		t.Fatal("Memory directory was not created")
+	}
+
+	// Verify MEMORY.md was created
+	indexPath := filepath.Join(cfg.MemoryDir, "MEMORY.md")
+	data, err := os.ReadFile(indexPath)
+	if err != nil {
+		t.Fatalf("MEMORY.md was not created: %v", err)
+	}
+	if !strings.Contains(string(data), "Memory Index") {
+		t.Errorf("MEMORY.md missing header, got: %s", string(data))
+	}
+
+	// Verify output
+	if !strings.Contains(got, "Memory system initialized") {
+		t.Errorf("Output missing success message: %s", got)
+	}
+	if !strings.Contains(got, cfg.MemoryDir) {
+		t.Errorf("Output missing path: %s", got)
+	}
+}
+
+func TestHandleInit_JSONOutput(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &Config{MemoryDir: filepath.Join(tmpDir, "sick-json")}
+
+	oldJSON := jsonOutput
+	jsonOutput = true
+	defer func() { jsonOutput = oldJSON }()
+
+	got := captureStdout(t, func() {
+		handleInit(cfg)
+	})
+
+	var resp SuccessResponse
+	if err := json.Unmarshal([]byte(got), &resp); err != nil {
+		t.Fatalf("output is not valid JSON: %v\nOutput: %s", err, got)
+	}
+	if resp.Version != "1.0" {
+		t.Errorf("Version = %q, want %q", resp.Version, "1.0")
+	}
+}
+
+func TestHandleList_Success(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &Config{MemoryDir: tmpDir}
+
+	// Create some memory files
+	for i := 0; i < 3; i++ {
+		filename := fmt.Sprintf("memory_%d.md", i+1)
+		content := "---\nname: Test\ndescription: test\ntype: user\n---\nhello\n"
+		if err := os.WriteFile(filepath.Join(tmpDir, filename), []byte(content), 0644); err != nil {
+			t.Fatalf("failed to write memory file: %v", err)
+		}
+	}
+	// Create a non-memory file to ensure it's filtered out
+	if err := os.WriteFile(filepath.Join(tmpDir, "other.txt"), []byte("not a memory"), 0644); err != nil {
+		t.Fatalf("failed to write other file: %v", err)
+	}
+
+	oldJSON := jsonOutput
+	jsonOutput = false
+	defer func() { jsonOutput = oldJSON }()
+
+	got := captureStdout(t, func() {
+		handleList(cfg)
+	})
+
+	if !strings.Contains(got, "Memories in") {
+		t.Errorf("Output missing header, got: %s", got)
+	}
+	if !strings.Contains(got, "Total memories: 3") {
+		t.Errorf("Output missing count 'Total memories: 3', got: %s", got)
+	}
+}
+
+func TestHandleList_EmptyDir(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &Config{MemoryDir: tmpDir}
+
+	oldJSON := jsonOutput
+	jsonOutput = false
+	defer func() { jsonOutput = oldJSON }()
+
+	got := captureStdout(t, func() {
+		handleList(cfg)
+	})
+
+	if !strings.Contains(got, "Total memories: 0") {
+		t.Errorf("Expected 0 memories, got: %s", got)
+	}
+}
+
+func TestHandleStatus_Active(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &Config{MemoryDir: tmpDir}
+
+	// Create a memory file
+	filename := "memory_test.md"
+	content := "---\nname: Test\ntype: user\n---\nbody\n"
+	if err := os.WriteFile(filepath.Join(tmpDir, filename), []byte(content), 0644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	oldJSON := jsonOutput
+	jsonOutput = false
+	defer func() { jsonOutput = oldJSON }()
+
+	got := captureStdout(t, func() {
+		handleStatus(cfg)
+	})
+
+	if !strings.Contains(got, "active") {
+		t.Errorf("Output missing 'active' status, got: %s", got)
+	}
+	if !strings.Contains(got, "Total memories: 1") {
+		t.Errorf("Output missing memory count '1', got: %s", got)
+	}
+}
+
+func TestHandleStatus_Uninitialized(t *testing.T) {
+	// Non-existent directory
+	cfg := &Config{MemoryDir: filepath.Join(t.TempDir(), "nonexistent")}
+
+	oldJSON := jsonOutput
+	jsonOutput = false
+	defer func() { jsonOutput = oldJSON }()
+
+	got := captureStdout(t, func() {
+		handleStatus(cfg)
+	})
+
+	if !strings.Contains(got, "uninitialized") {
+		t.Errorf("Output missing 'uninitialized' status, got: %s", got)
+	}
+}
+
+func TestHandleConfig(t *testing.T) {
+	tmpHome := t.TempDir()
+	oldHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpHome)
+	defer os.Setenv("HOME", oldHome)
+
+	cfg := &Config{
+		MemoryDir:   "/tmp/test-memory",
+		ProjectRoot: "/tmp/test-project",
+		GlobalConfig: GlobalConfig{
+			DefaultMemoryType: "user",
+			MaxMemorySize:     1024,
+			AutoIndex:         true,
+		},
+	}
+
+	oldJSON := jsonOutput
+	jsonOutput = false
+	defer func() { jsonOutput = oldJSON }()
+
+	got := captureStdout(t, func() {
+		handleConfig(cfg)
+	})
+
+	checks := []string{
+		"Sick-Memory Configuration",
+		"Memory Directory: /tmp/test-memory",
+		"Project Root: /tmp/test-project",
+		"Default Memory Type: user",
+		"Max Memory Size: 1024 bytes",
+		"Auto Index: true",
+	}
+	for _, check := range checks {
+		if !strings.Contains(got, check) {
+			t.Errorf("Output missing %q in:\n%s", check, got)
+		}
+	}
+}
+
+func TestHandleConfig_NoProjectRoot(t *testing.T) {
+	tmpHome := t.TempDir()
+	oldHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpHome)
+	defer os.Setenv("HOME", oldHome)
+
+	cfg := &Config{
+		MemoryDir:   "/tmp/local-memory",
+		ProjectRoot: "",
+		GlobalConfig: GlobalConfig{
+			DefaultMemoryType: "project",
+			MaxMemorySize:     512,
+			AutoIndex:         false,
+		},
+	}
+
+	oldJSON := jsonOutput
+	jsonOutput = false
+	defer func() { jsonOutput = oldJSON }()
+
+	got := captureStdout(t, func() {
+		handleConfig(cfg)
+	})
+
+	if !strings.Contains(got, "Not in a git repository") {
+		t.Errorf("Expected 'Not in a git repository' message, got: %s", got)
+	}
+	if !strings.Contains(got, "Default Memory Type: project") {
+		t.Errorf("Expected custom config values, got: %s", got)
 	}
 }
 
