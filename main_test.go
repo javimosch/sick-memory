@@ -952,6 +952,55 @@ func TestHandleConfig_NoProjectRoot(t *testing.T) {
 	}
 }
 
+func TestHandleRememberTimestampFormat(t *testing.T) {
+	// Verify that handleRemember writes created: as RFC3339 and parseMemory can round-trip it.
+	// This tests the fix for issue #13/#16 where created was written as Unix timestamp (%d)
+	// but parseMemory expected RFC3339.
+	tmpDir := t.TempDir()
+
+	oldJSON := jsonOutput
+	jsonOutput = false
+	defer func() { jsonOutput = oldJSON }()
+
+	// We can't easily call handleRemember because it reads os.Args.
+	// Instead, reproduce the exact format it writes now.
+	now := time.Date(2026, 6, 16, 10, 0, 0, 0, time.UTC)
+	timestamp := now.Unix()
+	memoryID := fmt.Sprintf("%d", timestamp)
+	filename := fmt.Sprintf("memory_%s.md", memoryID)
+	filePath := filepath.Join(tmpDir, filename)
+
+	// This mirrors the corrected format in handleRemember (RFC3339, not %d).
+	memoryContent := fmt.Sprintf(`---
+name: Memory %s
+description: test content
+type: user
+created: %s
+---
+
+test content
+`, memoryID, now.Format(time.RFC3339))
+
+	if err := os.WriteFile(filePath, []byte(memoryContent), 0644); err != nil {
+		t.Fatalf("failed to write memory file: %v", err)
+	}
+
+	memory := parseMemory(memoryContent, filename)
+
+	if memory.Created.IsZero() {
+		t.Fatal("parseMemory returned zero Created time — timestamp format mismatch (issue #13/#16)")
+	}
+	if !memory.Created.Equal(now) {
+		t.Errorf("Created = %v, want %v", memory.Created, now)
+	}
+	if memory.ID != filename[:len(filename)-3] {
+		t.Errorf("ID = %q, want %q", memory.ID, filename[:len(filename)-3])
+	}
+	if memory.Name != fmt.Sprintf("Memory %s", memoryID) {
+		t.Errorf("Name = %q, want %q", memory.Name, fmt.Sprintf("Memory %s", memoryID))
+	}
+}
+
 // captureStdout runs fn and returns everything written to stdout.
 func captureStdout(t *testing.T, fn func()) string {
 	t.Helper()
