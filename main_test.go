@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -550,6 +551,181 @@ func TestBuildSearchIndex_NoDir(t *testing.T) {
 	_, err := buildSearchIndex("/nonexistent/path")
 	if err == nil {
 		t.Error("expected error for non-existent path, got nil")
+	}
+}
+
+func TestPrintHelp(t *testing.T) {
+	got := captureStdout(t, func() {
+		printHelp()
+	})
+
+	// Verify key content is present
+	checks := []string{
+		"sick-memory",
+		"USAGE:",
+		"COMMANDS:",
+		"init",
+		"remember",
+		"recall",
+		"list",
+		"edit",
+		"delete",
+		"status",
+		"config",
+		"bridge",
+		"AGENT BRIDGES:",
+		"claude-code",
+		"opencode",
+		"copilot",
+		"EXIT CODES:",
+	}
+	for _, check := range checks {
+		if !strings.Contains(got, check) {
+			t.Errorf("printHelp() output missing %q", check)
+		}
+	}
+}
+
+func TestFindGitRepositoryRoot_InRepo(t *testing.T) {
+	// Run inside the current repo (we're in a git repo during tests)
+	root, err := findGitRepositoryRoot()
+	if err != nil {
+		t.Fatalf("findGitRepositoryRoot() returned error in git repo: %v", err)
+	}
+	if root == "" {
+		t.Fatal("findGitRepositoryRoot() returned empty string in git repo")
+	}
+	// Verify it looks like a path
+	if !strings.HasPrefix(root, "/") {
+		t.Errorf("expected absolute path, got %q", root)
+	}
+}
+
+func TestFindGitRepositoryRoot_OutsideRepo(t *testing.T) {
+	// Create a temp dir that is NOT a git repo
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd failed: %v", err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Chdir failed: %v", err)
+	}
+
+	_, err = findGitRepositoryRoot()
+	if err == nil {
+		t.Error("expected error when outside a git repository, got nil")
+	}
+}
+
+func TestLoadGlobalConfig_CreatesDefault(t *testing.T) {
+	// Use a temp HOME to isolate config creation
+	tmpHome := t.TempDir()
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpHome)
+	defer os.Setenv("HOME", origHome)
+
+	cfg := loadGlobalConfig()
+
+	// Verify defaults
+	if cfg.DefaultMemoryType != "user" {
+		t.Errorf("DefaultMemoryType = %q, want %q", cfg.DefaultMemoryType, "user")
+	}
+	if cfg.MaxMemorySize != 1024*1024 {
+		t.Errorf("MaxMemorySize = %d, want %d", cfg.MaxMemorySize, 1024*1024)
+	}
+	if !cfg.AutoIndex {
+		t.Error("AutoIndex should be true by default")
+	}
+
+	// Verify config file was created
+	configPath := filepath.Join(tmpHome, ".sick-memory", "config.json")
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		t.Fatal("config.json was not created")
+	}
+}
+
+func TestLoadGlobalConfig_LoadsExisting(t *testing.T) {
+	tmpHome := t.TempDir()
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpHome)
+	defer os.Setenv("HOME", origHome)
+
+	// Create custom config
+	configDir := filepath.Join(tmpHome, ".sick-memory")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
+	customConfig := GlobalConfig{
+		DefaultMemoryType: "project",
+		MaxMemorySize:     512 * 1024,
+		AutoIndex:         false,
+	}
+	data, _ := json.Marshal(customConfig)
+	configPath := filepath.Join(configDir, "config.json")
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	cfg := loadGlobalConfig()
+
+	if cfg.DefaultMemoryType != "project" {
+		t.Errorf("DefaultMemoryType = %q, want %q", cfg.DefaultMemoryType, "project")
+	}
+	if cfg.MaxMemorySize != 512*1024 {
+		t.Errorf("MaxMemorySize = %d, want %d", cfg.MaxMemorySize, 512*1024)
+	}
+	if cfg.AutoIndex {
+		t.Error("AutoIndex should be false")
+	}
+}
+
+func TestLoadGlobalConfig_InvalidJSONFallsBack(t *testing.T) {
+	tmpHome := t.TempDir()
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpHome)
+	defer os.Setenv("HOME", origHome)
+
+	// Write invalid JSON
+	configDir := filepath.Join(tmpHome, ".sick-memory")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
+	configPath := filepath.Join(configDir, "config.json")
+	if err := os.WriteFile(configPath, []byte("not-json"), 0644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	cfg := loadGlobalConfig()
+
+	// Should return defaults on invalid JSON
+	if cfg.DefaultMemoryType != "user" {
+		t.Errorf("DefaultMemoryType = %q, want default %q", cfg.DefaultMemoryType, "user")
+	}
+}
+
+func TestErrorResponse_PrintsValidJSON(t *testing.T) {
+	got := captureStdout(t, func() {
+		errorResponse(85, "invalid_argument", "test error message", false)
+	})
+
+	var resp ErrorResponse
+	if err := json.Unmarshal([]byte(got), &resp); err != nil {
+		t.Fatalf("errorResponse() output is not valid JSON: %v\nOutput: %s", err, got)
+	}
+	if resp.Error.Code != 85 {
+		t.Errorf("Code = %d, want %d", resp.Error.Code, 85)
+	}
+	if resp.Error.Type != "invalid_argument" {
+		t.Errorf("Type = %q, want %q", resp.Error.Type, "invalid_argument")
+	}
+	if resp.Error.Message != "test error message" {
+		t.Errorf("Message = %q, want %q", resp.Error.Message, "test error message")
+	}
+	if resp.Error.Recoverable {
+		t.Error("Recoverable should be false")
 	}
 }
 
