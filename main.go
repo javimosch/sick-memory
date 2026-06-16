@@ -353,7 +353,7 @@ func parseMemory(content, filename string) Memory {
 			} else if strings.HasPrefix(line, "type:") {
 				memory.Type = strings.TrimSpace(strings.TrimPrefix(line, "type:"))
 			} else if strings.HasPrefix(line, "created:") {
-				if timestamp, err := time.Parse(strings.Trim(strings.TrimPrefix(line, "created:"), " "), time.RFC3339); err == nil {
+				if timestamp, err := time.Parse(time.RFC3339, strings.Trim(strings.TrimPrefix(line, "created:"), " ")); err == nil {
 					memory.Created = timestamp
 				}
 			}
@@ -384,6 +384,10 @@ func calculateTFIDF(index *SearchIndex, term string, memoryID string) float64 {
 }
 
 func searchMemories(index *SearchIndex, query string) []SearchResult {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return []SearchResult{}
+	}
 	queryKeywords := extractKeywords(query)
 	results := make([]SearchResult, 0)
 	
@@ -582,17 +586,18 @@ func handleRemember(cfg *Config) {
 	timestamp := time.Now().Unix()
 	memoryID := fmt.Sprintf("%d", timestamp)
 	filename := fmt.Sprintf("memory_%s.md", memoryID)
+	createdStr := time.Now().UTC().Format(time.RFC3339)
 	filePath := filepath.Join(cfg.MemoryDir, filename)
 
 	memoryContent := fmt.Sprintf(`---
 name: Memory %s
 description: %s
 type: user
-created: %d
+created: %s
 ---
 
 %s
-`, memoryID, content, timestamp, content)
+`, memoryID, content, createdStr, content)
 
 	if err := os.WriteFile(filePath, []byte(memoryContent), 0644); err != nil {
 		errorResponse(92, "resource_error", fmt.Sprintf("Failed to write memory file: %v", err), false)
