@@ -353,7 +353,7 @@ func parseMemory(content, filename string) Memory {
 			} else if strings.HasPrefix(line, "type:") {
 				memory.Type = strings.TrimSpace(strings.TrimPrefix(line, "type:"))
 			} else if strings.HasPrefix(line, "created:") {
-				if timestamp, err := time.Parse(time.RFC3339, strings.Trim(strings.TrimPrefix(line, "created:"), " ")); err == nil {
+				if timestamp, err := time.Parse(time.RFC3339, strings.TrimSpace(strings.TrimPrefix(line, "created:"))); err == nil {
 					memory.Created = timestamp
 				}
 			}
@@ -580,7 +580,7 @@ func handleRemember(cfg *Config) {
 
 	// Create memory file
 	now := time.Now()
-	memoryID := fmt.Sprintf("%d", now.Unix())
+	memoryID := fmt.Sprintf("%d", now.UnixNano())
 	filename := fmt.Sprintf("memory_%s.md", memoryID)
 	filePath := filepath.Join(cfg.MemoryDir, filename)
 
