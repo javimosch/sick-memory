@@ -353,7 +353,7 @@ func parseMemory(content, filename string) Memory {
 			} else if strings.HasPrefix(line, "type:") {
 				memory.Type = strings.TrimSpace(strings.TrimPrefix(line, "type:"))
 			} else if strings.HasPrefix(line, "created:") {
-				if timestamp, err := time.Parse(strings.Trim(strings.TrimPrefix(line, "created:"), " "), time.RFC3339); err == nil {
+				if timestamp, err := time.Parse(time.RFC3339, strings.Trim(strings.TrimPrefix(line, "created:"), " ")); err == nil {
 					memory.Created = timestamp
 				}
 			}
@@ -579,8 +579,8 @@ func handleRemember(cfg *Config) {
 	content := args[0]
 
 	// Create memory file
-	timestamp := time.Now().Unix()
-	memoryID := fmt.Sprintf("%d", timestamp)
+	now := time.Now()
+	memoryID := fmt.Sprintf("%d", now.Unix())
 	filename := fmt.Sprintf("memory_%s.md", memoryID)
 	filePath := filepath.Join(cfg.MemoryDir, filename)
 
@@ -588,11 +588,11 @@ func handleRemember(cfg *Config) {
 name: Memory %s
 description: %s
 type: user
-created: %d
+created: %s
 ---
 
 %s
-`, memoryID, content, timestamp, content)
+`, memoryID, content, now.Format(time.RFC3339), content)
 
 	if err := os.WriteFile(filePath, []byte(memoryContent), 0644); err != nil {
 		errorResponse(92, "resource_error", fmt.Sprintf("Failed to write memory file: %v", err), false)
