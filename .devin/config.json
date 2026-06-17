@@ -1,5 +1,0 @@
-{
-  "verification": {
-    "command": "go doc"
-  }
-}
