@@ -353,7 +353,8 @@ func parseMemory(content, filename string) Memory {
 			} else if strings.HasPrefix(line, "type:") {
 				memory.Type = strings.TrimSpace(strings.TrimPrefix(line, "type:"))
 			} else if strings.HasPrefix(line, "created:") {
-				if timestamp, err := time.Parse(strings.Trim(strings.TrimPrefix(line, "created:"), " "), time.RFC3339); err == nil {
+				createdStr := strings.TrimSpace(strings.TrimPrefix(line, "created:"))
+				if timestamp, err := time.Parse(time.RFC3339, createdStr); err == nil {
 					memory.Created = timestamp
 				}
 			}
