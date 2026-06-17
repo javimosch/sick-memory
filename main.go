@@ -268,8 +268,9 @@ func loadGlobalConfig() GlobalConfig {
 	return config
 }
 
-// Search functions for pseudo semantic search
-
+// extractKeywords splits text into lowercase words, removes punctuation and
+// common English stop words, returning only meaningful keywords (length > 2).
+// Used by the TF-IDF search index for both indexing documents and processing queries.
 func extractKeywords(text string) []string {
 	// Convert to lowercase and split into words
 	text = strings.ToLower(text)
@@ -390,6 +391,8 @@ func parseMemory(content, filename string) Memory {
 	return memory
 }
 
+// calculateTFIDF computes the TF-IDF score for a single term in a given document.
+// Uses logarithmic IDF with add-one smoothing to handle terms not present in the corpus.
 func calculateTFIDF(index *SearchIndex, term string, memoryID string) float64 {
 	if index.DocCount == 0 {
 		return 0
@@ -407,6 +410,9 @@ func calculateTFIDF(index *SearchIndex, term string, memoryID string) float64 {
 	return tf * idf
 }
 
+// searchMemories scores all indexed memories against a query using TF-IDF,
+// exact phrase matching, word-overlap fallback, recency boost, and type-based
+// boosting. Returns results sorted by descending score.
 func searchMemories(index *SearchIndex, query string) []SearchResult {
 	query = strings.TrimSpace(query)
 	if query == "" {
@@ -482,6 +488,9 @@ func searchMemories(index *SearchIndex, query string) []SearchResult {
 	return results
 }
 
+// loadSearchIndex attempts to load a cached search index from disk.
+// If no cache exists or it is corrupt, it rebuilds the index from scratch
+// and persists the new cache.
 func loadSearchIndex(memoryPath string) (*SearchIndex, error) {
 	// Try to load cached index
 	indexFile := filepath.Join(memoryPath, "search_index.json")
@@ -500,6 +509,8 @@ func loadSearchIndex(memoryPath string) (*SearchIndex, error) {
 	return index, err
 }
 
+// saveSearchIndex persists a search index to disk as JSON for fast
+// subsequent lookups without re-scanning all memory files.
 func saveSearchIndex(memoryPath string, index *SearchIndex) error {
 	indexFile := filepath.Join(memoryPath, "search_index.json")
 	data, err := json.MarshalIndent(index, "", "  ")
