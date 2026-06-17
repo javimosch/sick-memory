@@ -32,4 +32,22 @@ sick-memory remember "<content>"
 sick-memory recall [query]
 sick-memory list
 sick-memory status
+sick-memory config
+```
+
+## Memory Types
+
+- **user**: Information about the person (role, goals, expertise)
+- **feedback**: Corrections and confirmations about work approach
+- **project**: Ongoing work context (who, what, why, when)
+- **reference**: External system pointers (URLs, dashboard links)
+
+## JSON Output
+
+Add `--json` flag to any command for machine-readable output:
+
+```bash
+sick-memory recall "query" --json
+sick-memory status --json
+sick-memory list --json
 ```
