@@ -215,6 +215,22 @@ func sanitizePath(path string) string {
 	return sanitized
 }
 
+// parseInt64 parses a string as int64, returning an error if the string
+// is empty or contains non-digit characters.
+func parseInt64(s string) (int64, error) {
+	if len(s) == 0 {
+		return 0, fmt.Errorf("empty string")
+	}
+	var n int64
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return 0, fmt.Errorf("not an integer: %s", s)
+		}
+		n = n*10 + int64(c-'0')
+	}
+	return n, nil
+}
+
 func getProjectMemoryPath(gitRoot string) string {
 	globalDir := getGlobalSickMemoryDir()
 	sanitizedRoot := sanitizePath(gitRoot)
@@ -353,8 +369,11 @@ func parseMemory(content, filename string) Memory {
 			} else if strings.HasPrefix(line, "type:") {
 				memory.Type = strings.TrimSpace(strings.TrimPrefix(line, "type:"))
 			} else if strings.HasPrefix(line, "created:") {
-				if timestamp, err := time.Parse(strings.Trim(strings.TrimPrefix(line, "created:"), " "), time.RFC3339); err == nil {
+				createdStr := strings.TrimSpace(strings.TrimPrefix(line, "created:"))
+				if timestamp, err := time.Parse(time.RFC3339, createdStr); err == nil {
 					memory.Created = timestamp
+				} else if unixSec, err := parseInt64(createdStr); err == nil {
+					memory.Created = time.Unix(unixSec, 0)
 				}
 			}
 		} else {
@@ -579,8 +598,8 @@ func handleRemember(cfg *Config) {
 	content := args[0]
 
 	// Create memory file
-	timestamp := time.Now().Unix()
-	memoryID := fmt.Sprintf("%d", timestamp)
+	timestamp := time.Now().Format(time.RFC3339)
+	memoryID := fmt.Sprintf("%d", time.Now().Unix())
 	filename := fmt.Sprintf("memory_%s.md", memoryID)
 	filePath := filepath.Join(cfg.MemoryDir, filename)
 
@@ -588,7 +607,7 @@ func handleRemember(cfg *Config) {
 name: Memory %s
 description: %s
 type: user
-created: %d
+created: %s
 ---
 
 %s
