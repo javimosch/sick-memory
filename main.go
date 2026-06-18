@@ -181,11 +181,15 @@ func main() {
 	}
 }
 
+// getDefaultMemoryDir returns the fallback local memory directory path
+// used when not in a git repository or when centralized storage is unavailable.
 func getDefaultMemoryDir() string {
 	// Default to local .sick-memory directory (fallback)
 	return ".sick-memory"
 }
 
+// getGlobalSickMemoryDir returns the centralized sick-memory directory path
+// in the user's home directory (~/.sick-memory).
 func getGlobalSickMemoryDir() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -194,6 +198,8 @@ func getGlobalSickMemoryDir() string {
 	return filepath.Join(homeDir, ".sick-memory")
 }
 
+// findGitRepositoryRoot uses git rev-parse to find the root directory
+// of the current git repository. Returns an error if not in a git repository.
 func findGitRepositoryRoot() (string, error) {
 	// Try git rev-parse --show-toplevel
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
@@ -206,6 +212,8 @@ func findGitRepositoryRoot() (string, error) {
 	return root, nil
 }
 
+// sanitizePath replaces filesystem-unsafe characters with safe alternatives
+// to create valid directory names from git repository paths.
 func sanitizePath(path string) string {
 	// Replace slashes and other problematic characters with dashes
 	sanitized := strings.ReplaceAll(path, "/", "-")
@@ -215,6 +223,8 @@ func sanitizePath(path string) string {
 	return sanitized
 }
 
+// getProjectMemoryPath constructs the centralized memory storage path
+// for a specific git repository, using sanitized repository root as directory name.
 func getProjectMemoryPath(gitRoot string) string {
 	globalDir := getGlobalSickMemoryDir()
 	sanitizedRoot := sanitizePath(gitRoot)
