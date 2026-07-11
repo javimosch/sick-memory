@@ -4,6 +4,10 @@ set -euo pipefail
 # Ensure the script runs from the repository root.
 cd "$(dirname "$0")"
 
+# Run tests before producing release binaries
+echo "Running tests..."
+go test ./...
+
 # Build sick-memory CLI - Default
 echo "Building sick-memory default..."
 go build -o sick-memory .
