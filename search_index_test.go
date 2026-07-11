@@ -254,6 +254,50 @@ func TestSaveAndLoadSearchIndex(t *testing.T) {
 	}
 }
 
+func TestBuildSearchIndexNonExistentDirectory(t *testing.T) {
+	nonExistentPath := filepath.Join(t.TempDir(), "does-not-exist")
+
+	index, err := buildSearchIndex(nonExistentPath)
+	if err == nil {
+		t.Fatal("expected error for non-existent directory, got nil")
+	}
+	if index != nil {
+		t.Fatalf("expected nil index on error, got %v", index)
+	}
+}
+
+func TestLoadSearchIndexFallsBackOnCorruptCache(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := os.WriteFile(filepath.Join(dir, "search_index.json"), []byte("not valid json"), 0644); err != nil {
+		t.Fatalf("failed to write corrupt cache: %v", err)
+	}
+
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: project
+created: 2026-07-11T12:00:00Z
+---
+Write tests in golang
+`)
+
+	index, err := loadSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("loadSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 1 {
+		t.Errorf("DocCount = %d, want 1", index.DocCount)
+	}
+	if _, ok := index.Memories["memory_1"]; !ok {
+		t.Errorf("expected memory_1 to be indexed, got %v", index.Memories)
+	}
+}
+
 func writeMemoryFile(t *testing.T, dir, name, content string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
