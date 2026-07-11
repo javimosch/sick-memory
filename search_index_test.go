@@ -100,6 +100,43 @@ rust programming
 	}
 }
 
+func TestBuildSearchIndexIgnoresNonMemoryFiles(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: project
+created: 2026-07-11T12:00:00Z
+---
+Write tests in golang
+`)
+
+	for _, name := range []string{"README.md", "notes.txt", "memory_2.txt", ".hidden.md"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("should be ignored"), 0644); err != nil {
+			t.Fatalf("failed to write %s: %v", name, err)
+		}
+	}
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 1 {
+		t.Errorf("DocCount = %d, want 1", index.DocCount)
+	}
+	if _, ok := index.Memories["memory_1"]; !ok {
+		t.Errorf("expected memory_1 to be indexed, got %v", index.Memories)
+	}
+	if _, ok := index.Memories["README"]; ok {
+		t.Errorf("did not expect README.md to be indexed")
+	}
+}
+
 func TestSaveAndLoadSearchIndex(t *testing.T) {
 	dir := t.TempDir()
 
