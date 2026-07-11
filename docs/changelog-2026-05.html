@@ -28,10 +28,10 @@
         
         <!-- Tabs -->
         <div class="flex gap-2 mt-8">
-          <button onclick="switchTab('product')" id="tab-product" class="tab-btn active px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium text-sm hover:border-slate-600">
+          <button type="button" onclick="switchTab('product')" id="tab-product" class="tab-btn active px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium text-sm hover:border-slate-600">
             Product
           </button>
-          <button onclick="switchTab('technical')" id="tab-technical" class="tab-btn px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium text-sm hover:border-slate-600">
+          <button type="button" onclick="switchTab('technical')" id="tab-technical" class="tab-btn px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 font-medium text-sm hover:border-slate-600">
             Technical
           </button>
         </div>
@@ -42,7 +42,7 @@
 <div class="feature-card rounded-xl p-6">
   <div class="flex items-start gap-4">
     <div class="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-      <span class="text-2xl">🔍</span>
+      <span class="text-2xl" aria-hidden="true">🔍</span>
     </div>
     <div>
       <h3 class="text-xl font-semibold text-white mb-2">Semantic Search Engine</h3>
@@ -54,7 +54,7 @@
 <div class="feature-card rounded-xl p-6">
   <div class="flex items-start gap-4">
     <div class="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-      <span class="text-2xl">✏️</span>
+      <span class="text-2xl" aria-hidden="true">✏️</span>
     </div>
     <div>
       <h3 class="text-xl font-semibold text-white mb-2">Edit & Delete Support</h3>
@@ -66,7 +66,7 @@
 <div class="feature-card rounded-xl p-6">
   <div class="flex items-start gap-4">
     <div class="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-      <span class="text-2xl">🤖</span>
+      <span class="text-2xl" aria-hidden="true">🤖</span>
     </div>
     <div>
       <h3 class="text-xl font-semibold text-white mb-2">Agent-First Design</h3>
@@ -78,7 +78,7 @@
 <div class="feature-card rounded-xl p-6">
   <div class="flex items-start gap-4">
     <div class="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-      <span class="text-2xl">🐛</span>
+      <span class="text-2xl" aria-hidden="true">🐛</span>
     </div>
     <div>
       <h3 class="text-xl font-semibold text-white mb-2">Bug Fixes</h3>
@@ -100,7 +100,7 @@
 
         <section>
           <h2 class="text-2xl font-semibold text-purple-400 mb-4 flex items-center gap-2">
-            <span>💼</span> Other
+            <span aria-hidden="true">💼</span> Other
           </h2>
           <ul class="space-y-2 text-slate-300">
             <li><span class="text-slate-500 text-sm mr-3">[22/05]</span>Add emojis to docs page and link supercli repo</li>
