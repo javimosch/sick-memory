@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Ensure the script runs from the repository root.
-cd "$(dirname "$0")"
+cd "$(dirname "$(readlink -f "$0")")"
 
 # Run tests and static analysis before producing release binaries
 echo "Running tests..."
