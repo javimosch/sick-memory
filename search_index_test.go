@@ -254,6 +254,18 @@ func TestSaveAndLoadSearchIndex(t *testing.T) {
 	}
 }
 
+func TestBuildSearchIndexNonExistentDirectory(t *testing.T) {
+	nonExistentPath := filepath.Join(t.TempDir(), "does-not-exist")
+
+	index, err := buildSearchIndex(nonExistentPath)
+	if err == nil {
+		t.Fatal("expected error for non-existent directory, got nil")
+	}
+	if index != nil {
+		t.Fatalf("expected nil index on error, got %v", index)
+	}
+}
+
 func writeMemoryFile(t *testing.T, dir, name, content string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
