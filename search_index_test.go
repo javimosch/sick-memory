@@ -8,6 +8,31 @@ import (
 	"time"
 )
 
+func TestBuildSearchIndexEmptyDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 0 {
+		t.Errorf("DocCount = %d, want 0", index.DocCount)
+	}
+	if len(index.Memories) != 0 {
+		t.Errorf("Memories count = %d, want 0", len(index.Memories))
+	}
+	if len(index.TermFreq) != 0 {
+		t.Errorf("TermFreq count = %d, want 0", len(index.TermFreq))
+	}
+	if len(index.DocFreq) != 0 {
+		t.Errorf("DocFreq count = %d, want 0", len(index.DocFreq))
+	}
+}
+
 func TestBuildSearchIndex(t *testing.T) {
 	dir := t.TempDir()
 
