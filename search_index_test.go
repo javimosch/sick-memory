@@ -137,6 +137,47 @@ Write tests in golang
 	}
 }
 
+func TestLoadSearchIndexUsesCacheFile(t *testing.T) {
+	dir := t.TempDir()
+
+	cache := `{
+  "TermFreq": {"golang": {"memory_1": 2}},
+  "DocFreq": {"golang": 1},
+  "DocCount": 1,
+  "Memories": {
+    "memory_1": {
+      "id": "memory_1",
+      "name": "Cached Memory",
+      "description": "cached",
+      "type": "project",
+      "created": "2026-07-11T12:00:00Z",
+      "content": "cached content"
+    }
+  }
+}`
+	if err := os.WriteFile(filepath.Join(dir, "search_index.json"), []byte(cache), 0644); err != nil {
+		t.Fatalf("failed to write cache: %v", err)
+	}
+
+	index, err := loadSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("loadSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 1 {
+		t.Errorf("DocCount = %d, want 1", index.DocCount)
+	}
+	if _, ok := index.Memories["memory_1"]; !ok {
+		t.Errorf("expected memory_1 from cache, got %v", index.Memories)
+	}
+	if index.Memories["memory_1"].Name != "Cached Memory" {
+		t.Errorf("Name = %q, want %q", index.Memories["memory_1"].Name, "Cached Memory")
+	}
+}
+
 func TestSaveAndLoadSearchIndex(t *testing.T) {
 	dir := t.TempDir()
 
