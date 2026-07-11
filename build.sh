@@ -24,3 +24,7 @@ echo "Smoke testing sick-memory default binary..."
 echo "Building sick-memory optimized..."
 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o sick-memory-optimized .
 ls -lh sick-memory-optimized
+
+# Smoke test the optimized binary too
+echo "Smoke testing sick-memory optimized binary..."
+./sick-memory-optimized --version

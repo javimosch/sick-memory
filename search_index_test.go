@@ -266,6 +266,18 @@ func TestBuildSearchIndexNonExistentDirectory(t *testing.T) {
 	}
 }
 
+func TestLoadSearchIndexNonExistentDirectory(t *testing.T) {
+	nonExistentPath := filepath.Join(t.TempDir(), "does-not-exist")
+
+	index, err := loadSearchIndex(nonExistentPath)
+	if err == nil {
+		t.Fatal("expected error for non-existent directory, got nil")
+	}
+	if index != nil {
+		t.Fatalf("expected nil index on error, got %v", index)
+	}
+}
+
 func TestLoadSearchIndexFallsBackOnCorruptCache(t *testing.T) {
 	dir := t.TempDir()
 
