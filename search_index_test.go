@@ -8,6 +8,31 @@ import (
 	"time"
 )
 
+func TestBuildSearchIndexEmptyDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 0 {
+		t.Errorf("DocCount = %d, want 0", index.DocCount)
+	}
+	if len(index.Memories) != 0 {
+		t.Errorf("Memories count = %d, want 0", len(index.Memories))
+	}
+	if len(index.TermFreq) != 0 {
+		t.Errorf("TermFreq count = %d, want 0", len(index.TermFreq))
+	}
+	if len(index.DocFreq) != 0 {
+		t.Errorf("DocFreq count = %d, want 0", len(index.DocFreq))
+	}
+}
+
 func TestBuildSearchIndex(t *testing.T) {
 	dir := t.TempDir()
 
@@ -72,6 +97,84 @@ rust programming
 		if _, ok := index.Memories[id]; !ok {
 			t.Errorf("missing memory %s", id)
 		}
+	}
+}
+
+func TestBuildSearchIndexIgnoresNonMemoryFiles(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: project
+created: 2026-07-11T12:00:00Z
+---
+Write tests in golang
+`)
+
+	for _, name := range []string{"README.md", "notes.txt", "memory_2.txt", ".hidden.md"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("should be ignored"), 0644); err != nil {
+			t.Fatalf("failed to write %s: %v", name, err)
+		}
+	}
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 1 {
+		t.Errorf("DocCount = %d, want 1", index.DocCount)
+	}
+	if _, ok := index.Memories["memory_1"]; !ok {
+		t.Errorf("expected memory_1 to be indexed, got %v", index.Memories)
+	}
+	if _, ok := index.Memories["README"]; ok {
+		t.Errorf("did not expect README.md to be indexed")
+	}
+}
+
+func TestLoadSearchIndexUsesCacheFile(t *testing.T) {
+	dir := t.TempDir()
+
+	cache := `{
+  "TermFreq": {"golang": {"memory_1": 2}},
+  "DocFreq": {"golang": 1},
+  "DocCount": 1,
+  "Memories": {
+    "memory_1": {
+      "id": "memory_1",
+      "name": "Cached Memory",
+      "description": "cached",
+      "type": "project",
+      "created": "2026-07-11T12:00:00Z",
+      "content": "cached content"
+    }
+  }
+}`
+	if err := os.WriteFile(filepath.Join(dir, "search_index.json"), []byte(cache), 0644); err != nil {
+		t.Fatalf("failed to write cache: %v", err)
+	}
+
+	index, err := loadSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("loadSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 1 {
+		t.Errorf("DocCount = %d, want 1", index.DocCount)
+	}
+	if _, ok := index.Memories["memory_1"]; !ok {
+		t.Errorf("expected memory_1 from cache, got %v", index.Memories)
+	}
+	if index.Memories["memory_1"].Name != "Cached Memory" {
+		t.Errorf("Name = %q, want %q", index.Memories["memory_1"].Name, "Cached Memory")
 	}
 }
 
