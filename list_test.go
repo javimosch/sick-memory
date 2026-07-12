@@ -134,6 +134,41 @@ func TestHandleListTextOutput(t *testing.T) {
 	}
 }
 
+func TestHandleListTextOutputEmpty(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = false
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleList(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memories in") {
+		t.Errorf("expected output to contain 'Memories in', got %q", got)
+	}
+	if !strings.Contains(got, "Total memories: 0") {
+		t.Errorf("expected output to contain 'Total memories: 0', got %q", got)
+	}
+	if strings.Contains(got, "memory_") {
+		t.Errorf("expected no memory IDs in empty output, got %q", got)
+	}
+}
+
 func TestHandleListMissingDirectoryJSON(t *testing.T) {
 	if os.Getenv("EXIT_TEST") == "1" {
 		jsonOutput = true
