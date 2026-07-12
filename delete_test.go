@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -97,5 +98,25 @@ func TestHandleDeleteTextOutput(t *testing.T) {
 	got := string(out)
 	if !strings.Contains(got, "Memory 123 deleted successfully") {
 		t.Errorf("expected deleted message, got %q", got)
+	}
+}
+
+func TestHandleDeleteMissingArgument(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		os.Args = []string{"cmd", "delete"}
+		handleDelete(&Config{MemoryDir: ""})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestHandleDeleteMissingArgument", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 80 {
+		t.Errorf("expected exit code 80, got %d", exitErr.ExitCode())
 	}
 }
