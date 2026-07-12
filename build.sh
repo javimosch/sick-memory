@@ -31,6 +31,8 @@ echo "Smoke testing core commands with temporary memory dir..."
 MEMORY_ID=$(./sick-memory remember "Smoke test memory" --memory-dir "$SMOKE_DIR" | awk '{print $NF}')
 ./sick-memory recall "Smoke test" --memory-dir "$SMOKE_DIR"
 ./sick-memory list --memory-dir "$SMOKE_DIR"
+./sick-memory edit "$MEMORY_ID" "Edited smoke test memory" --memory-dir "$SMOKE_DIR"
+./sick-memory search "Edited smoke test" --memory-dir "$SMOKE_DIR"
 ./sick-memory delete "$MEMORY_ID" --memory-dir "$SMOKE_DIR"
 ./sick-memory status --memory-dir "$SMOKE_DIR"
 
@@ -43,6 +45,10 @@ HOME="$SMOKE_DIR/home" ./sick-memory config --memory-dir "$SMOKE_DIR"
   cd "$BRIDGE_DIR"
   "$REPO_ROOT/sick-memory" bridge claude-code --memory-dir "$SMOKE_DIR"
   [ -f .claude/CLAUDE.md ]
+  "$REPO_ROOT/sick-memory" bridge opencode --memory-dir "$SMOKE_DIR"
+  [ -f .opencode/memory.json ]
+  "$REPO_ROOT/sick-memory" bridge copilot --memory-dir "$SMOKE_DIR"
+  [ -f .copilot/settings.json ]
 )
 
 # Build sick-memory CLI - Optimized (size + performance)
@@ -59,6 +65,8 @@ echo "Smoke testing core commands with optimized binary..."
 OPT_MEMORY_ID=$(./sick-memory-optimized remember "Smoke test optimized" --memory-dir "$OPT_SMOKE_DIR" | awk '{print $NF}')
 ./sick-memory-optimized recall "Smoke test" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized list --memory-dir "$OPT_SMOKE_DIR"
+./sick-memory-optimized edit "$OPT_MEMORY_ID" "Edited smoke test optimized" --memory-dir "$OPT_SMOKE_DIR"
+./sick-memory-optimized search "Edited smoke test" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized delete "$OPT_MEMORY_ID" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized status --memory-dir "$OPT_SMOKE_DIR"
 
