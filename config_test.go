@@ -446,3 +446,38 @@ func TestHandleConfigCentralizedTextOutput(t *testing.T) {
 		t.Errorf("expected output to contain project root path, got %q", got)
 	}
 }
+
+func TestMainConfigTextOutput(t *testing.T) {
+	if os.Getenv("MAIN_CONFIG_TEXT") == "1" {
+		os.Args = []string{"sick-memory", "config"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	dir := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainConfigTextOutput$")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "MAIN_CONFIG_TEXT=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("TestMainConfigTextOutput subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Sick-Memory Configuration:") {
+		t.Errorf("expected output to contain title, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Memory Directory: .sick-memory") {
+		t.Errorf("expected output to contain memory directory, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Project Root: Not in a git repository") {
+		t.Errorf("expected output to contain no git repository, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Storage Mode: Local (fallback)") {
+		t.Errorf("expected output to contain local storage mode, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Auto Index: true") {
+		t.Errorf("expected output to contain auto index, got:\n%s", got)
+	}
+}
