@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -662,5 +663,37 @@ Write tests in golang
 	}
 	if index.TermFreq["golang"]["memory_2"] != 2 {
 		t.Errorf("TermFreq[golang][memory_2] = %d, want 2", index.TermFreq["golang"]["memory_2"])
+	}
+}
+
+func TestSaveSearchIndexMarshalError(t *testing.T) {
+	dir := t.TempDir()
+
+	index := &SearchIndex{
+		TermFreq: map[string]map[string]int{
+			"golang": {"memory_1": 1},
+		},
+		DocFreq: map[string]int{
+			"golang": 1,
+		},
+		DocCount: 1,
+		Memories: map[string]Memory{
+			"memory_1": {
+				ID:          "memory_1",
+				Name:        "Out of Range Memory",
+				Description: "test",
+				Type:        "user",
+				Created:     time.Date(10000, 1, 1, 0, 0, 0, 0, time.UTC),
+				Content:     "golang",
+			},
+		},
+	}
+
+	err := saveSearchIndex(dir, index)
+	if err == nil {
+		t.Fatal("expected saveSearchIndex to return an error")
+	}
+	if !strings.Contains(err.Error(), "MarshalJSON") {
+		t.Errorf("expected JSON marshal error, got %v", err)
 	}
 }
