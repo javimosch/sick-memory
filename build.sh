@@ -15,7 +15,8 @@ go vet ./...
 SMOKE_DIR=$(mktemp -d)
 OPT_SMOKE_DIR=$(mktemp -d)
 BRIDGE_DIR=$(mktemp -d)
-trap 'rm -rf "$SMOKE_DIR" "$OPT_SMOKE_DIR" "$BRIDGE_DIR"' EXIT
+JSON_SMOKE_DIR=$(mktemp -d)
+trap 'rm -rf "$SMOKE_DIR" "$OPT_SMOKE_DIR" "$BRIDGE_DIR" "$JSON_SMOKE_DIR"' EXIT
 
 # Build sick-memory CLI - Default
 echo "Building sick-memory default..."
@@ -36,6 +37,12 @@ MEMORY_ID=$(./sick-memory remember "Smoke test memory" --memory-dir "$SMOKE_DIR"
 ./sick-memory search "Edited smoke test" --memory-dir "$SMOKE_DIR"
 ./sick-memory delete "$MEMORY_ID" --memory-dir "$SMOKE_DIR"
 ./sick-memory status --memory-dir "$SMOKE_DIR"
+
+# Smoke test JSON output for a subset of commands
+./sick-memory init --memory-dir "$JSON_SMOKE_DIR"
+./sick-memory list --json --memory-dir "$JSON_SMOKE_DIR"
+./sick-memory status --json --memory-dir "$JSON_SMOKE_DIR"
+./sick-memory config --json --memory-dir "$JSON_SMOKE_DIR"
 
 # Smoke test the config command without polluting the real HOME directory
 mkdir -p "$SMOKE_DIR/home"
