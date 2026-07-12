@@ -232,11 +232,10 @@ func TestSearchMemories(t *testing.T) {
 		},
 	}
 
-	t.Run("empty query returns all memories (exact phrase match on empty string)", func(t *testing.T) {
-		// strings.Contains(s, "") always returns true in Go, so all memories get +2.0 exact phrase boost
+	t.Run("empty query returns no results", func(t *testing.T) {
 		results := searchMemories(idx, "")
-		if len(results) != 2 {
-			t.Errorf("expected 2 results for empty query (all get phrase boost), got %d", len(results))
+		if len(results) != 0 {
+			t.Errorf("expected 0 results for empty query, got %d", len(results))
 		}
 	})
 
