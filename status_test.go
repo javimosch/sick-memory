@@ -309,3 +309,57 @@ func TestMainStatusActive(t *testing.T) {
 		t.Errorf("expected total memories count, got:\n%s", got)
 	}
 }
+
+func TestStatusMain(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(oldWd)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("failed to change working directory: %v", err)
+	}
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+
+	os.Args = []string{"sick-memory", "status"}
+	jsonOutput = false
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory system status: uninitialized") {
+		t.Errorf("expected uninitialized status, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Run 'sick-memory init' to initialize.") {
+		t.Errorf("expected init hint, got:\n%s", got)
+	}
+}
