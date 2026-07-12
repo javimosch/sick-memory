@@ -561,3 +561,36 @@ func TestStatusMainActiveMemoryDirTextOutput(t *testing.T) {
 		t.Errorf("expected total memories count, got %q", got)
 	}
 }
+
+func TestMainStatusActiveMemoryDirJSON(t *testing.T) {
+	if os.Getenv("MAIN_STATUS_ACTIVE_MEMORY_DIR_JSON") == "1" {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "memory_1.md"), []byte("content"), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to write memory file: %v\n", err)
+			os.Exit(1)
+		}
+		os.Args = []string{"sick-memory", "status", "--json", "--memory-dir", dir}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainStatusActiveMemoryDirJSON$")
+	cmd.Dir = t.TempDir()
+	cmd.Env = append(os.Environ(), "MAIN_STATUS_ACTIVE_MEMORY_DIR_JSON=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("TestMainStatusActiveMemoryDirJSON subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, `"status":"active"`) {
+		t.Errorf("expected active status in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, `"count":1`) {
+		t.Errorf("expected count 1 in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, `"version":"1.0"`) {
+		t.Errorf("expected version 1.0 in output, got:\n%s", got)
+	}
+}
