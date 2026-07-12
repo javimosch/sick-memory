@@ -334,6 +334,24 @@ func TestBuildSearchIndexNonExistentDirectory(t *testing.T) {
 	}
 }
 
+func TestLoadSearchIndexPropagatesBuildError(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create a file where loadSearchIndex expects a directory.
+	filePath := filepath.Join(dir, "not-a-directory")
+	if err := os.WriteFile(filePath, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	index, err := loadSearchIndex(filePath)
+	if err == nil {
+		t.Fatal("expected error when buildSearchIndex fails, got nil")
+	}
+	if index != nil {
+		t.Fatalf("expected nil index on error, got %v", index)
+	}
+}
+
 func TestLoadSearchIndexNonExistentDirectory(t *testing.T) {
 	nonExistentPath := filepath.Join(t.TempDir(), "does-not-exist")
 
