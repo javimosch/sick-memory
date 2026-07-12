@@ -409,6 +409,21 @@ Write tests in golang
 	}
 }
 
+func TestSaveSearchIndexMissingDirectory(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "missing")
+
+	index := &SearchIndex{
+		TermFreq: map[string]map[string]int{},
+		DocFreq:  map[string]int{},
+		DocCount: 0,
+		Memories: map[string]Memory{},
+	}
+
+	if err := saveSearchIndex(dir, index); err == nil {
+		t.Fatal("saveSearchIndex expected error for missing directory, got nil")
+	}
+}
+
 func TestBuildSearchIndexMemoryWithOnlyStopWords(t *testing.T) {
 	dir := t.TempDir()
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -173,6 +174,18 @@ func TestGetProjectMemoryPath(t *testing.T) {
 	}
 }
 
+func TestGetProjectMemoryPathSanitizesCharacters(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	gitRoot := "C:/Users/My Project/repo"
+	got := getProjectMemoryPath(gitRoot)
+	want := filepath.Join(home, ".sick-memory", "projects", "C--Users-My_Project-repo", "memory")
+	if got != want {
+		t.Errorf("getProjectMemoryPath(%q) = %q, want %q", gitRoot, got, want)
+	}
+}
+
 func TestGetGlobalSickMemoryDirFallsBackWhenHomeMissing(t *testing.T) {
 	t.Setenv("HOME", "")
 
@@ -180,5 +193,51 @@ func TestGetGlobalSickMemoryDirFallsBackWhenHomeMissing(t *testing.T) {
 	want := getDefaultMemoryDir()
 	if got != want {
 		t.Errorf("getGlobalSickMemoryDir() = %q, want %q", got, want)
+	}
+}
+
+func TestFindGitRepositoryRoot(t *testing.T) {
+	dir := t.TempDir()
+
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(oldWd)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("failed to change working directory: %v", err)
+	}
+
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not installed:", err)
+	}
+
+	if err := exec.Command("git", "init").Run(); err != nil {
+		t.Fatalf("git init failed: %v", err)
+	}
+
+	got, err := findGitRepositoryRoot()
+	if err != nil {
+		t.Fatalf("findGitRepositoryRoot() error = %v", err)
+	}
+	if got != dir {
+		t.Errorf("findGitRepositoryRoot() = %q, want %q", got, dir)
+	}
+}
+
+func TestFindGitRepositoryRootOutsideRepo(t *testing.T) {
+	dir := t.TempDir()
+
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(oldWd)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("failed to change working directory: %v", err)
+	}
+
+	if _, err := findGitRepositoryRoot(); err == nil {
+		t.Error("findGitRepositoryRoot() expected error when not in a git repository")
 	}
 }
