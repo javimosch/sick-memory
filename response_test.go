@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/exec"
 	"testing"
 )
 
@@ -134,3 +135,26 @@ func TestErrorResponseNonRecoverable(t *testing.T) {
 		t.Errorf("recoverable = true, want false")
 	}
 }
+
+func TestSuccessResponseMarshalError(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		cyclic := make(map[string]interface{})
+		cyclic["self"] = cyclic
+		successResponse(cyclic)
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestSuccessResponseMarshalError", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 110 {
+		t.Errorf("expected exit code 110, got %d", exitErr.ExitCode())
+	}
+}
+
+
