@@ -3,17 +3,19 @@ set -euo pipefail
 
 # Ensure the script runs from the repository root.
 cd "$(dirname "$(readlink -f "$0")")"
+REPO_ROOT=$(pwd)
 
 # Run tests and static analysis before producing release binaries
 echo "Running tests..."
-go test -count=1 ./...
+go test -race -count=1 ./...
 
 echo "Running vet..."
 go vet ./...
 
 SMOKE_DIR=$(mktemp -d)
 OPT_SMOKE_DIR=$(mktemp -d)
-trap 'rm -rf "$SMOKE_DIR" "$OPT_SMOKE_DIR"' EXIT
+BRIDGE_DIR=$(mktemp -d)
+trap 'rm -rf "$SMOKE_DIR" "$OPT_SMOKE_DIR" "$BRIDGE_DIR"' EXIT
 
 # Build sick-memory CLI - Default
 echo "Building sick-memory default..."
@@ -35,6 +37,13 @@ MEMORY_ID=$(./sick-memory remember "Smoke test memory" --memory-dir "$SMOKE_DIR"
 # Smoke test the config command without polluting the real HOME directory
 mkdir -p "$SMOKE_DIR/home"
 HOME="$SMOKE_DIR/home" ./sick-memory config --memory-dir "$SMOKE_DIR"
+
+# Smoke test the bridge command in an isolated directory to avoid cluttering the repo
+(
+  cd "$BRIDGE_DIR"
+  "$REPO_ROOT/sick-memory" bridge claude-code --memory-dir "$SMOKE_DIR"
+  [ -f .claude/CLAUDE.md ]
+)
 
 # Build sick-memory CLI - Optimized (size + performance)
 echo "Building sick-memory optimized..."
