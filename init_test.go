@@ -158,6 +158,36 @@ func TestMainInitJSON(t *testing.T) {
 	}
 }
 
+func TestMainInitText(t *testing.T) {
+	if os.Getenv("MAIN_INIT_TEXT") == "1" {
+		dir := os.Getenv("INIT_DIR")
+		os.Args = []string{"sick-memory", "init", "--memory-dir", dir}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	dir := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainInitText$")
+	cmd.Env = append(os.Environ(), "MAIN_INIT_TEXT=1", "HOME="+home, "INIT_DIR="+dir)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("TestMainInitText subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory system initialized at") {
+		t.Errorf("expected initialization message, got:\n%s", got)
+	}
+	if !strings.Contains(got, dir) {
+		t.Errorf("expected memory directory path, got:\n%s", got)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "MEMORY.md")); err != nil {
+		t.Errorf("expected MEMORY.md index file: %v", err)
+	}
+}
+
 func TestInitMain(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
