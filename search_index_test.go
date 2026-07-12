@@ -510,3 +510,48 @@ func writeMemoryFile(t *testing.T, dir, name, content string) {
 		t.Fatalf("failed to write %s: %v", name, err)
 	}
 }
+
+func TestBuildSearchIndexComputesDocFreqAcrossMemories(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang learning
+type: user
+created: 2026-07-11T12:00:00Z
+---
+Learn golang
+`)
+
+	writeMemoryFile(t, dir, "memory_2.md", `---
+name: Memory Two
+description: golang testing
+type: project
+created: 2026-07-11T13:00:00Z
+---
+Write tests in golang
+`)
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 2 {
+		t.Errorf("DocCount = %d, want 2", index.DocCount)
+	}
+
+	if index.DocFreq["golang"] != 2 {
+		t.Errorf("DocFreq[golang] = %d, want 2", index.DocFreq["golang"])
+	}
+
+	if index.TermFreq["golang"]["memory_1"] != 2 {
+		t.Errorf("TermFreq[golang][memory_1] = %d, want 2", index.TermFreq["golang"]["memory_1"])
+	}
+	if index.TermFreq["golang"]["memory_2"] != 2 {
+		t.Errorf("TermFreq[golang][memory_2] = %d, want 2", index.TermFreq["golang"]["memory_2"])
+	}
+}
