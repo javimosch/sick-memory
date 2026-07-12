@@ -235,3 +235,43 @@ func TestMainLsAlias(t *testing.T) {
 		t.Errorf("expected version 1.0 in output, got:\n%s", got)
 	}
 }
+
+func TestMainListWithMemories(t *testing.T) {
+	if os.Getenv("MAIN_LIST_WITH") == "1" {
+		os.Args = []string{"sick-memory", "list"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	repo := t.TempDir()
+	if err := exec.Command("git", "-C", repo, "init", "-q").Run(); err != nil {
+		t.Fatalf("failed to init git repo: %v", err)
+	}
+
+	memDir := filepath.Join(home, ".sick-memory", "projects", sanitizePath(repo), "memory")
+	if err := os.MkdirAll(memDir, 0755); err != nil {
+		t.Fatalf("failed to create memory dir: %v", err)
+	}
+
+	writeMemoryFile(t, memDir, "memory_1.md", "content")
+
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainListWithMemories$")
+	cmd.Dir = repo
+	cmd.Env = append(os.Environ(), "MAIN_LIST_WITH=1", "HOME="+home)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("TestMainListWithMemories subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memories in") {
+		t.Errorf("expected 'Memories in' in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, "memory_1.md") {
+		t.Errorf("expected memory_1.md in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Total memories: 1") {
+		t.Errorf("expected total memories count, got:\n%s", got)
+	}
+}
