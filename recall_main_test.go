@@ -1,0 +1,127 @@
+package main
+
+import (
+	"encoding/json"
+	"io"
+	"os"
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestRecallMainMemoryDir(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	created := time.Now().UTC().Format(time.RFC3339)
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang recall
+type: project
+created: `+created+`
+---
+main recall --memory-dir test
+`)
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "recall", "--json", "golang", "--memory-dir", dir}
+	jsonOutput = false
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp map[string]interface{}
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp["data"].([]interface{})
+	if !ok || len(data) == 0 {
+		t.Fatalf("expected non-empty data, got %T", resp["data"])
+	}
+	first, ok := data[0].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected result map, got %T", data[0])
+	}
+	if first["memory_id"] != "memory_1" {
+		t.Errorf("memory_id = %v, want %q", first["memory_id"], "memory_1")
+	}
+}
+
+func TestRecallMainMemoryDirTextOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	created := time.Now().UTC().Format(time.RFC3339)
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang recall
+type: project
+created: `+created+`
+---
+main recall --memory-dir text
+`)
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "recall", "golang", "--memory-dir", dir}
+	jsonOutput = false
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Found 1 memories matching: golang") {
+		t.Errorf("expected match summary, got %q", got)
+	}
+	if !strings.Contains(got, "ID: memory_1") {
+		t.Errorf("expected memory ID in output, got %q", got)
+	}
+}
