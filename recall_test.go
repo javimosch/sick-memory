@@ -500,3 +500,67 @@ func TestHandleRecallMissingDirectory(t *testing.T) {
 	}
 }
 
+func TestHandleRecallSkipsGlobalFlags(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = true
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir, GlobalConfig: GlobalConfig{AutoIndex: false}}
+
+	created := time.Now().UTC().Format(time.RFC3339)
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: user
+created: `+created+`
+---
+
+Write tests in golang
+`)
+
+	os.Args = []string{"cmd", "recall", "--json", "--memory-dir=/tmp", "golang"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleRecall(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	results, ok := resp.Data.([]interface{})
+	if !ok {
+		t.Fatalf("expected []interface{}, got %T", resp.Data)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+
+	result, ok := results[0].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected result object, got %T", results[0])
+	}
+	if result["memory_id"] != "memory_1" {
+		t.Errorf("memory_id = %v, want %q", result["memory_id"], "memory_1")
+	}
+	if result["memory_type"] != "user" {
+		t.Errorf("memory_type = %v, want %q", result["memory_type"], "user")
+	}
+}
+
