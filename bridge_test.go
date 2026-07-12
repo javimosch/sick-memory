@@ -833,3 +833,61 @@ func TestBridgeMainMemoryDir(t *testing.T) {
 		t.Errorf("expected bridge file to contain memory directory, got %q", string(content))
 	}
 }
+
+func TestBridgeMainMemoryDirTextOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(oldWd)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("failed to change working directory: %v", err)
+	}
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "bridge", "opencode", "--memory-dir", dir}
+	jsonOutput = false
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "OpenCode bridge created successfully") {
+		t.Errorf("expected success message, got %q", got)
+	}
+	if !strings.Contains(got, "Configuration file: .opencode/memory.json") {
+		t.Errorf("expected configuration file path, got %q", got)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, ".opencode", "memory.json")); err != nil {
+		t.Errorf("expected .opencode/memory.json to exist: %v", err)
+	}
+}
