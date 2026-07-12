@@ -477,6 +477,33 @@ func TestBuildSearchIndexSkipsUnreadableMemoryFile(t *testing.T) {
 	}
 }
 
+func TestBuildSearchIndexPopulatesCreated(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: project
+created: 2026-07-11T12:00:00Z
+---
+Write tests in golang
+`)
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	want := time.Date(2026, 7, 11, 12, 0, 0, 0, time.UTC)
+	got := index.Memories["memory_1"].Created
+	if !got.Equal(want) {
+		t.Errorf("Created = %v, want %v", got, want)
+	}
+}
+
 func writeMemoryFile(t *testing.T, dir, name, content string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
