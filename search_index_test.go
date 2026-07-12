@@ -925,3 +925,20 @@ GOLANG TESTING rust
 		t.Errorf("expected memory_1 score %v to be higher than memory_2 score %v", results[0].Score, results[1].Score)
 	}
 }
+
+func TestSearchMemoriesEmptyIndex(t *testing.T) {
+	dir := t.TempDir()
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	results := searchMemories(index, "golang")
+	if len(results) != 0 {
+		t.Errorf("expected 0 results for empty index, got %d", len(results))
+	}
+}
