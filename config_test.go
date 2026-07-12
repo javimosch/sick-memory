@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -302,5 +304,61 @@ func TestFindGitRepositoryRootFromNested(t *testing.T) {
 	}
 	if got != dir {
 		t.Errorf("findGitRepositoryRoot() = %q, want %q", got, dir)
+	}
+}
+
+func TestHandleConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	oldJSON := jsonOutput
+	jsonOutput = true
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	dir := t.TempDir()
+	cfg := &Config{
+		MemoryDir:    dir,
+		ProjectRoot:  dir,
+		GlobalConfig: loadGlobalConfig(),
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleConfig(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+
+	if data["memory_directory"] != dir {
+		t.Errorf("memory_directory = %v, want %q", data["memory_directory"], dir)
+	}
+	if data["project_root"] != dir {
+		t.Errorf("project_root = %v, want %q", data["project_root"], dir)
+	}
+
+	globalConfig, ok := data["global_config"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected global_config object, got %T", data["global_config"])
+	}
+	if globalConfig["default_memory_type"] != "user" {
+		t.Errorf("default_memory_type = %v, want %q", globalConfig["default_memory_type"], "user")
 	}
 }
