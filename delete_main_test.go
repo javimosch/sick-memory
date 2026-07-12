@@ -1,12 +1,147 @@
 package main
 
 import (
+	"encoding/json"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestDeleteMainTextOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	writeMemoryFile(t, dir, "memory_1.md", "content")
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "delete", "1"}
+	jsonOutput = false
+	memoryDir = dir
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory 1 deleted successfully") {
+		t.Errorf("expected deleted message, got %q", got)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "memory_1.md")); !os.IsNotExist(err) {
+		t.Errorf("expected memory file to be deleted")
+	}
+}
+
+func TestDeleteMainJSON(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	writeMemoryFile(t, dir, "memory_1.md", "content")
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "delete", "1", "--json"}
+	jsonOutput = true
+	memoryDir = dir
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp map[string]interface{}
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp["data"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp["data"])
+	}
+	if data["id"] != "1" {
+		t.Errorf("id = %v, want %q", data["id"], "1")
+	}
+	if data["status"] != "deleted" {
+		t.Errorf("status = %v, want %q", data["status"], "deleted")
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "memory_1.md")); !os.IsNotExist(err) {
+		t.Errorf("expected memory file to be deleted")
+	}
+}
+
+func TestDeleteMainMissingArgument(t *testing.T) {
+	if os.Getenv("DELETE_MAIN_MISSING") == "1" {
+		dir := t.TempDir()
+		t.Setenv("HOME", dir)
+		os.Args = []string{"sick-memory", "delete"}
+		memoryDir = ""
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestDeleteMainMissingArgument$", "-test.v")
+	cmd.Env = append(os.Environ(), "DELETE_MAIN_MISSING=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected exit error, got nil")
+	}
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok || exitErr.ExitCode() != 80 {
+		t.Fatalf("expected exit code 80, got %v", err)
+	}
+
+	if !strings.Contains(string(out), "Memory ID required for delete") {
+		t.Errorf("expected missing argument message, got:\n%s", out)
+	}
+}
 
 func TestDeleteMainMemoryNotFound(t *testing.T) {
 	if os.Getenv("DELETE_MAIN_MEMORY_NOT_FOUND") == "1" {
