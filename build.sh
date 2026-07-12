@@ -32,6 +32,10 @@ MEMORY_ID=$(./sick-memory remember "Smoke test memory" --memory-dir "$SMOKE_DIR"
 ./sick-memory delete "$MEMORY_ID" --memory-dir "$SMOKE_DIR"
 ./sick-memory status --memory-dir "$SMOKE_DIR"
 
+# Smoke test the config command without polluting the real HOME directory
+mkdir -p "$SMOKE_DIR/home"
+HOME="$SMOKE_DIR/home" ./sick-memory config --memory-dir "$SMOKE_DIR"
+
 # Build sick-memory CLI - Optimized (size + performance)
 echo "Building sick-memory optimized..."
 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o sick-memory-optimized .
@@ -48,3 +52,7 @@ OPT_MEMORY_ID=$(./sick-memory-optimized remember "Smoke test optimized" --memory
 ./sick-memory-optimized list --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized delete "$OPT_MEMORY_ID" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized status --memory-dir "$OPT_SMOKE_DIR"
+
+# Smoke test the config command with the optimized binary
+mkdir -p "$OPT_SMOKE_DIR/home"
+HOME="$OPT_SMOKE_DIR/home" ./sick-memory-optimized config --memory-dir "$OPT_SMOKE_DIR"
