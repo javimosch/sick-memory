@@ -1,12 +1,60 @@
 package main
 
 import (
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestDeleteMainTextOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	writeMemoryFile(t, dir, "memory_1.md", "content")
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "delete", "1"}
+	jsonOutput = false
+	memoryDir = dir
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory 1 deleted successfully") {
+		t.Errorf("expected deleted message, got %q", got)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "memory_1.md")); !os.IsNotExist(err) {
+		t.Errorf("expected memory file to be deleted")
+	}
+}
 
 func TestDeleteMainMemoryNotFound(t *testing.T) {
 	if os.Getenv("DELETE_MAIN_MEMORY_NOT_FOUND") == "1" {
