@@ -31,6 +31,7 @@ echo "Smoke testing core commands with temporary memory dir..."
 MEMORY_ID=$(./sick-memory remember "Smoke test memory" --memory-dir "$SMOKE_DIR" | awk '{print $NF}')
 ./sick-memory recall "Smoke test" --memory-dir "$SMOKE_DIR"
 ./sick-memory list --memory-dir "$SMOKE_DIR"
+./sick-memory edit "$MEMORY_ID" "Edited smoke test memory" --memory-dir "$SMOKE_DIR"
 ./sick-memory delete "$MEMORY_ID" --memory-dir "$SMOKE_DIR"
 ./sick-memory status --memory-dir "$SMOKE_DIR"
 
@@ -59,6 +60,7 @@ echo "Smoke testing core commands with optimized binary..."
 OPT_MEMORY_ID=$(./sick-memory-optimized remember "Smoke test optimized" --memory-dir "$OPT_SMOKE_DIR" | awk '{print $NF}')
 ./sick-memory-optimized recall "Smoke test" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized list --memory-dir "$OPT_SMOKE_DIR"
+./sick-memory-optimized edit "$OPT_MEMORY_ID" "Edited smoke test optimized" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized delete "$OPT_MEMORY_ID" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized status --memory-dir "$OPT_SMOKE_DIR"
 
