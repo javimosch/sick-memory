@@ -666,6 +666,29 @@ Write tests in golang
 	}
 }
 
+func TestExtractKeywordsTrimsPunctuationAndStops(t *testing.T) {
+	got := extractKeywords("The a an of at Golang, testing! Rust.")
+	want := []string{"golang", "testing", "rust"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("extractKeywords = %v, want %v", got, want)
+	}
+}
+
+func TestExtractKeywordsIgnoresShortWords(t *testing.T) {
+	got := extractKeywords("Go is a great language")
+	want := []string{"great", "language"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("extractKeywords = %v, want %v", got, want)
+	}
+}
+
+func TestExtractKeywordsEmptyString(t *testing.T) {
+	got := extractKeywords("")
+	if len(got) != 0 {
+		t.Errorf("expected empty keywords, got %v", got)
+	}
+}
+
 func TestSaveSearchIndexMarshalError(t *testing.T) {
 	dir := t.TempDir()
 
