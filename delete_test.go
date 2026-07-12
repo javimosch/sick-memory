@@ -218,3 +218,41 @@ func TestMainDeleteMissingArgument(t *testing.T) {
 		t.Errorf("expected missing argument message, got:\n%s", out)
 	}
 }
+
+func TestMainDelete(t *testing.T) {
+	if os.Getenv("MAIN_DELETE") == "1" {
+		os.Args = []string{"sick-memory", "delete", "123"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	repo := t.TempDir()
+	if err := exec.Command("git", "-C", repo, "init", "-q").Run(); err != nil {
+		t.Fatalf("failed to init git repo: %v", err)
+	}
+
+	memDir := filepath.Join(home, ".sick-memory", "projects", sanitizePath(repo), "memory")
+	if err := os.MkdirAll(memDir, 0755); err != nil {
+		t.Fatalf("failed to create memory dir: %v", err)
+	}
+
+	writeMemoryFile(t, memDir, "memory_123.md", "content")
+
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainDelete$")
+	cmd.Dir = repo
+	cmd.Env = append(os.Environ(), "MAIN_DELETE=1", "HOME="+home)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("TestMainDelete subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory 123 deleted successfully") {
+		t.Errorf("expected deleted message, got:\n%s", got)
+	}
+
+	if _, err := os.Stat(filepath.Join(memDir, "memory_123.md")); !os.IsNotExist(err) {
+		t.Errorf("expected memory file to be deleted")
+	}
+}
