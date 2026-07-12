@@ -310,6 +310,32 @@ func TestMainStatusActive(t *testing.T) {
 	}
 }
 
+func TestMainStatusJSON(t *testing.T) {
+	if os.Getenv("MAIN_STATUS_JSON") == "1" {
+		os.Args = []string{"sick-memory", "status", "--json"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	dir := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainStatusJSON$", "-test.v")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "MAIN_STATUS_JSON=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("TestMainStatusJSON subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, `"status":"uninitialized"`) {
+		t.Errorf("expected uninitialized status, got:\n%s", got)
+	}
+	if !strings.Contains(got, `"version":"1.0"`) {
+		t.Errorf("expected version 1.0 in output, got:\n%s", got)
+	}
+}
+
 func TestStatusMain(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
