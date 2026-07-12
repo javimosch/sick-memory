@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -123,5 +125,33 @@ main recall --memory-dir text
 	}
 	if !strings.Contains(got, "ID: memory_1") {
 		t.Errorf("expected memory ID in output, got %q", got)
+	}
+}
+
+func TestRecallMainMissingDirectory(t *testing.T) {
+	if os.Getenv("RECALL_MAIN_MISSING_DIR") == "1" {
+		dir := filepath.Join(t.TempDir(), "does-not-exist")
+		jsonOutput = true
+		memoryDir = dir
+		os.Args = []string{"sick-memory", "recall", "--json", "golang"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestRecallMainMissingDirectory$", "-test.v")
+	cmd.Env = append(os.Environ(), "RECALL_MAIN_MISSING_DIR=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected exit error, got nil\n%s", out)
+	}
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok || exitErr.ExitCode() != 92 {
+		t.Fatalf("expected exit code 92, got %v", err)
+	}
+
+	if !strings.Contains(string(out), "Memory directory not found") {
+		t.Errorf("expected memory directory not found message, got:\n%s", out)
 	}
 }
