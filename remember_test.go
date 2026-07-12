@@ -585,3 +585,53 @@ func TestMainRememberMemoryDir(t *testing.T) {
 		t.Errorf("expected memory file to exist: %v", err)
 	}
 }
+
+func TestMainRememberMemoryDirTextOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "remember", "--memory-dir", dir, "main remember memory dir text test"}
+	jsonOutput = false
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.HasPrefix(got, "Memory saved with ID:") {
+		t.Errorf("expected saved message, got %q", got)
+	}
+
+	files, err := filepath.Glob(filepath.Join(dir, "memory_*.md"))
+	if err != nil {
+		t.Fatalf("failed to glob memory files: %v", err)
+	}
+	if len(files) != 1 {
+		t.Errorf("expected 1 memory file, got %d", len(files))
+	}
+}
