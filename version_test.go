@@ -71,6 +71,26 @@ func TestMainLongVersion(t *testing.T) {
 	}
 }
 
+func TestMainShortVersion(t *testing.T) {
+	if os.Getenv("MAIN_SHORT_VERSION") == "1" {
+		os.Args = []string{"sick-memory", "-v"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainShortVersion$", "-test.v")
+	cmd.Env = append(os.Environ(), "MAIN_SHORT_VERSION=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("TestMainShortVersion subprocess failed: %v\n%s", err, out)
+	}
+
+	if !strings.Contains(string(out), "sick-memory version "+Version) {
+		t.Errorf("expected version output, got:\n%s", out)
+	}
+}
+
 func TestVersionMain(t *testing.T) {
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
