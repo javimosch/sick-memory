@@ -93,6 +93,38 @@ func TestHandleStatusActive(t *testing.T) {
 	}
 }
 
+func TestHandleStatusUninitializedTextOutput(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = false
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: filepath.Join(dir, "does-not-exist")}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleStatus(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory system status: uninitialized") {
+		t.Errorf("expected uninitialized status, got %q", got)
+	}
+	if !strings.Contains(got, "Run 'sick-memory init' to initialize.") {
+		t.Errorf("expected init hint, got %q", got)
+	}
+}
+
 func TestHandleStatusActiveTextOutput(t *testing.T) {
 	oldJSON := jsonOutput
 	jsonOutput = false
