@@ -612,6 +612,34 @@ func TestMainBridgeMissingArgs(t *testing.T) {
 	}
 }
 
+func TestMainBridgeUnknownAgent(t *testing.T) {
+	if os.Getenv("MAIN_BRIDGE_UNKNOWN") == "1" {
+		os.Args = []string{"sick-memory", "bridge", "unknown"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainBridgeUnknownAgent$", "-test.v")
+	cmd.Env = append(os.Environ(), "MAIN_BRIDGE_UNKNOWN=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected exit error, got nil")
+	}
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok || exitErr.ExitCode() != 85 {
+		t.Fatalf("expected exit code 85, got %v", err)
+	}
+
+	if !strings.Contains(string(out), "Unknown agent: unknown") {
+		t.Errorf("expected unknown agent message, got:\n%s", out)
+	}
+	if !strings.Contains(string(out), "Available agents: claude-code, opencode, copilot") {
+		t.Errorf("expected available agents list, got:\n%s", out)
+	}
+}
+
 func TestBridgeMain(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

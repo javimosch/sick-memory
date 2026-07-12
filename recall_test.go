@@ -656,6 +656,52 @@ main search alias test
 	}
 }
 
+func TestMainRecallText(t *testing.T) {
+	if os.Getenv("MAIN_RECALL_TEXT") == "1" {
+		os.Args = []string{"sick-memory", "recall", "golang"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	repo := t.TempDir()
+	if err := exec.Command("git", "-C", repo, "init", "-q").Run(); err != nil {
+		t.Fatalf("failed to init git repo: %v", err)
+	}
+
+	memDir := filepath.Join(home, ".sick-memory", "projects", sanitizePath(repo), "memory")
+	if err := os.MkdirAll(memDir, 0755); err != nil {
+		t.Fatalf("failed to create memory dir: %v", err)
+	}
+
+	created := time.Now().UTC().Format(time.RFC3339)
+	writeMemoryFile(t, memDir, "memory_1.md", `---
+name: Memory One
+description: golang search
+type: user
+created: `+created+`
+---
+
+main recall text test
+`)
+
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainRecallText$")
+	cmd.Dir = repo
+	cmd.Env = append(os.Environ(), "MAIN_RECALL_TEXT=1", "HOME="+home)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("TestMainRecallText subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Found 1 memories matching: golang") {
+		t.Errorf("expected match summary, got:\n%s", got)
+	}
+	if !strings.Contains(got, "ID: memory_1") {
+		t.Errorf("expected memory ID in output, got:\n%s", got)
+	}
+}
+
 func TestRecallMain(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
