@@ -164,6 +164,33 @@ func TestErrorResponseSpecialCharacters(t *testing.T) {
 	}
 }
 
+func TestErrorResponseInvalidUTF8(t *testing.T) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+
+	old := os.Stdout
+	os.Stdout = w
+	errorResponse(42, "test_error", string([]byte{0xff}), true)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp ErrorResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	if resp.Error.Message != "\ufffd" {
+		t.Errorf("message = %q, want %q", resp.Error.Message, "\ufffd")
+	}
+}
+
 func TestSuccessResponseMarshalError(t *testing.T) {
 	if os.Getenv("EXIT_TEST") == "1" {
 		cyclic := make(map[string]interface{})

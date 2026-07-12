@@ -519,3 +519,32 @@ func TestMainListMemoryDirTextOutput(t *testing.T) {
 		t.Errorf("expected total memories count, got:\n%s", got)
 	}
 }
+
+func TestMainListMemoryDirJSON(t *testing.T) {
+	if os.Getenv("MAIN_LIST_MEMORY_DIR_JSON") == "1" {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "memory_1.md"), []byte("content"), 0644); err != nil {
+			t.Fatalf("failed to write memory file: %v", err)
+		}
+		os.Args = []string{"sick-memory", "list", "--json", "--memory-dir", dir}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainListMemoryDirJSON$")
+	cmd.Dir = t.TempDir()
+	cmd.Env = append(os.Environ(), "MAIN_LIST_MEMORY_DIR_JSON=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("TestMainListMemoryDirJSON subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, `"memory_1.md"`) {
+		t.Errorf("expected memory_1.md in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, `"version":"1.0"`) {
+		t.Errorf("expected version 1.0 in output, got:\n%s", got)
+	}
+}
