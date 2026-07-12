@@ -942,3 +942,29 @@ func TestSearchMemoriesEmptyIndex(t *testing.T) {
 		t.Errorf("expected 0 results for empty index, got %d", len(results))
 	}
 }
+
+func TestSearchMemoriesEmptyQuery(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: project
+created: 2026-07-11T12:00:00Z
+---
+Write tests in golang
+`)
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	results := searchMemories(index, "")
+	if len(results) != 0 {
+		t.Errorf("expected 0 results for empty query, got %d", len(results))
+	}
+}

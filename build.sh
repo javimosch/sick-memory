@@ -44,6 +44,10 @@ MEMORY_ID=$(./sick-memory remember "Smoke test memory" --memory-dir "$SMOKE_DIR"
 ./sick-memory status --json --memory-dir "$JSON_SMOKE_DIR"
 ./sick-memory config --json --memory-dir "$JSON_SMOKE_DIR"
 
+JSON_MEMORY_ID=$(./sick-memory remember "JSON smoke memory" --json --memory-dir "$JSON_SMOKE_DIR" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+./sick-memory recall "JSON smoke" --json --memory-dir "$JSON_SMOKE_DIR"
+./sick-memory delete "$JSON_MEMORY_ID" --json --memory-dir "$JSON_SMOKE_DIR"
+
 # Smoke test the config command without polluting the real HOME directory
 mkdir -p "$SMOKE_DIR/home"
 HOME="$SMOKE_DIR/home" ./sick-memory config --memory-dir "$SMOKE_DIR"
