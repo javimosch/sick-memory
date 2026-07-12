@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -89,5 +90,44 @@ func TestHandleStatusActive(t *testing.T) {
 	}
 	if count, ok := data["count"].(float64); !ok || count != 0 {
 		t.Errorf("expected count 0, got %v", data["count"])
+	}
+}
+
+func TestHandleStatusActiveTextOutput(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = false
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir}
+
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("failed to create memory dir: %v", err)
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleStatus(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory system status: active") {
+		t.Errorf("expected active status, got %q", got)
+	}
+	if !strings.Contains(got, "Memory directory:") {
+		t.Errorf("expected memory directory, got %q", got)
+	}
+	if !strings.Contains(got, "Total memories: 0") {
+		t.Errorf("expected total memories, got %q", got)
 	}
 }

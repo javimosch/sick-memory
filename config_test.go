@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -360,5 +361,46 @@ func TestHandleConfig(t *testing.T) {
 	}
 	if globalConfig["default_memory_type"] != "user" {
 		t.Errorf("default_memory_type = %v, want %q", globalConfig["default_memory_type"], "user")
+	}
+}
+
+func TestHandleConfigTextOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	cfg := &Config{
+		MemoryDir:    dir,
+		ProjectRoot:  "",
+		GlobalConfig: loadGlobalConfig(),
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleConfig(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Sick-Memory Configuration:") {
+		t.Errorf("expected output to contain title, got %q", got)
+	}
+	if !strings.Contains(got, "Memory Directory:") {
+		t.Errorf("expected output to contain memory directory, got %q", got)
+	}
+	if !strings.Contains(got, "Storage Mode: Local (fallback)") {
+		t.Errorf("expected output to contain local storage mode, got %q", got)
+	}
+	if !strings.Contains(got, "Auto Index: true") {
+		t.Errorf("expected output to contain auto index, got %q", got)
 	}
 }
