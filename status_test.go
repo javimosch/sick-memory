@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -214,5 +216,33 @@ func TestHandleStatusActiveWithMemories(t *testing.T) {
 	}
 	if data["path"] != dir {
 		t.Errorf("expected path %q, got %v", dir, data["path"])
+	}
+}
+
+func TestHandleStatusReadDirError(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		jsonOutput = true
+
+		dir := t.TempDir()
+		memoryPath := filepath.Join(dir, "not-a-directory")
+		if err := os.WriteFile(memoryPath, []byte(""), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to write file: %v\n", err)
+			os.Exit(1)
+		}
+
+		handleStatus(&Config{MemoryDir: memoryPath})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestHandleStatusReadDirError", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 92 {
+		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
 	}
 }
