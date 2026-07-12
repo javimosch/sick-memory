@@ -431,6 +431,32 @@ func TestHandleBridgeUnknownAgent(t *testing.T) {
 	}
 }
 
+func TestGenerateClaudeCodeBridgeWriteError(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		dir := t.TempDir()
+		if err := os.MkdirAll(filepath.Join(dir, ".claude", "CLAUDE.md"), 0755); err != nil {
+			t.Fatalf("failed to create blocking directory: %v", err)
+		}
+		if err := os.Chdir(dir); err != nil {
+			t.Fatalf("failed to change directory: %v", err)
+		}
+		generateClaudeCodeBridge(&Config{MemoryDir: dir})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestGenerateClaudeCodeBridgeWriteError", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 92 {
+		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
+	}
+}
+
 func TestGenerateClaudeCodeBridgeMkdirError(t *testing.T) {
 	if os.Getenv("EXIT_TEST") == "1" {
 		dir := t.TempDir()
@@ -497,6 +523,32 @@ func TestGenerateOpenCodeBridgeWriteError(t *testing.T) {
 	}
 
 	cmd := exec.Command(os.Args[0], "-test.run=TestGenerateOpenCodeBridgeWriteError", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 92 {
+		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
+	}
+}
+
+func TestGenerateCopilotBridgeWriteError(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		dir := t.TempDir()
+		if err := os.MkdirAll(filepath.Join(dir, ".copilot", "settings.json"), 0755); err != nil {
+			t.Fatalf("failed to create blocking directory: %v", err)
+		}
+		if err := os.Chdir(dir); err != nil {
+			t.Fatalf("failed to change directory: %v", err)
+		}
+		generateCopilotBridge(&Config{MemoryDir: dir})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestGenerateCopilotBridgeWriteError", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
