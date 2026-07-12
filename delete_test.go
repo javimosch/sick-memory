@@ -193,3 +193,28 @@ func TestHandleDeleteRemoveError(t *testing.T) {
 		t.Errorf("expected exit code 110, got %d", exitErr.ExitCode())
 	}
 }
+
+func TestMainDeleteMissingArgument(t *testing.T) {
+	if os.Getenv("MAIN_DELETE_MISSING") == "1" {
+		os.Args = []string{"sick-memory", "delete"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=TestMainDeleteMissingArgument", "-test.v")
+	cmd.Env = append(os.Environ(), "MAIN_DELETE_MISSING=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected exit error, got nil")
+	}
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok || exitErr.ExitCode() != 80 {
+		t.Fatalf("expected exit code 80, got %v", err)
+	}
+
+	if !strings.Contains(string(out), "Memory ID required for delete") {
+		t.Errorf("expected missing argument message, got:\n%s", out)
+	}
+}
