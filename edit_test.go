@@ -1,0 +1,120 @@
+package main
+
+import (
+	"encoding/json"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestHandleEditJSON(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = true
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir}
+
+	writeMemoryFile(t, dir, "memory_123.md", `---
+name: Memory 123
+description: original content
+type: user
+created: 2026-07-11T12:00:00Z
+---
+
+Original content
+`)
+
+	os.Args = []string{"cmd", "edit", "123", "Updated content for golang tests"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleEdit(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	if data["id"] != "123" {
+		t.Errorf("id = %v, want %q", data["id"], "123")
+	}
+	if data["status"] != "updated" {
+		t.Errorf("status = %v, want %q", data["status"], "updated")
+	}
+
+	updated, err := os.ReadFile(filepath.Join(dir, "memory_123.md"))
+	if err != nil {
+		t.Fatalf("failed to read updated memory file: %v", err)
+	}
+	if !strings.Contains(string(updated), "Updated content for golang tests") {
+		t.Errorf("expected updated content in file, got %q", string(updated))
+	}
+	if !strings.Contains(string(updated), "description: Updated content for golang tests") {
+		t.Errorf("expected updated description in frontmatter, got %q", string(updated))
+	}
+}
+
+func TestHandleEditTextOutput(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = false
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir}
+
+	writeMemoryFile(t, dir, "memory_456.md", `---
+name: Memory 456
+description: original
+type: project
+created: 2026-07-11T12:00:00Z
+---
+
+Original content
+`)
+
+	os.Args = []string{"cmd", "edit", "456", "new content"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleEdit(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory 456 updated successfully") {
+		t.Errorf("expected updated message, got %q", got)
+	}
+}
