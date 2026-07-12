@@ -174,6 +174,18 @@ func TestGetProjectMemoryPath(t *testing.T) {
 	}
 }
 
+func TestGetProjectMemoryPathSanitizesCharacters(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	gitRoot := "C:/Users/My Project/repo"
+	got := getProjectMemoryPath(gitRoot)
+	want := filepath.Join(home, ".sick-memory", "projects", "C--Users-My_Project-repo", "memory")
+	if got != want {
+		t.Errorf("getProjectMemoryPath(%q) = %q, want %q", gitRoot, got, want)
+	}
+}
+
 func TestGetGlobalSickMemoryDirFallsBackWhenHomeMissing(t *testing.T) {
 	t.Setenv("HOME", "")
 
