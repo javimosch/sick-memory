@@ -586,3 +586,28 @@ func TestGenerateCopilotBridgeMkdirError(t *testing.T) {
 		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
 	}
 }
+
+func TestMainBridgeMissingArgs(t *testing.T) {
+	if os.Getenv("MAIN_BRIDGE_MISSING") == "1" {
+		os.Args = []string{"sick-memory", "bridge"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=TestMainBridgeMissingArgs", "-test.v")
+	cmd.Env = append(os.Environ(), "MAIN_BRIDGE_MISSING=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected exit error, got nil")
+	}
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok || exitErr.ExitCode() != 85 {
+		t.Fatalf("expected exit code 85, got %v", err)
+	}
+
+	if !strings.Contains(string(out), "Usage: sick-memory bridge") {
+		t.Errorf("expected bridge usage message, got:\n%s", out)
+	}
+}
