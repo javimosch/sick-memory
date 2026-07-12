@@ -64,3 +64,23 @@ func TestMainHelp(t *testing.T) {
 		t.Errorf("expected help output, got:\n%s", out)
 	}
 }
+
+func TestMainHelpFlag(t *testing.T) {
+	if os.Getenv("MAIN_HELP_FLAG") == "1" {
+		os.Args = []string{"sick-memory", "--help"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=TestMainHelpFlag", "-test.v")
+	cmd.Env = append(os.Environ(), "MAIN_HELP_FLAG=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("TestMainHelpFlag subprocess failed: %v\n%s", err, out)
+	}
+
+	if !strings.Contains(string(out), "sick-memory - File-based memory system for AI coding agents") {
+		t.Errorf("expected help output, got:\n%s", out)
+	}
+}
