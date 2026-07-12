@@ -164,3 +164,32 @@ func TestHandleDeleteReadDirError(t *testing.T) {
 		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
 	}
 }
+
+func TestHandleDeleteRemoveError(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		jsonOutput = true
+		dir := t.TempDir()
+		memoryDir := filepath.Join(dir, "memory_123")
+		if err := os.MkdirAll(memoryDir, 0755); err != nil {
+			t.Fatalf("failed to create memory directory: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(memoryDir, "keep.txt"), []byte("keep"), 0644); err != nil {
+			t.Fatalf("failed to create file inside memory directory: %v", err)
+		}
+		os.Args = []string{"cmd", "delete", "123"}
+		handleDelete(&Config{MemoryDir: dir})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestHandleDeleteRemoveError", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 110 {
+		t.Errorf("expected exit code 110, got %d", exitErr.ExitCode())
+	}
+}
