@@ -544,3 +544,36 @@ func TestConfigMain(t *testing.T) {
 		t.Errorf("expected output to contain auto index, got:\n%s", got)
 	}
 }
+
+func TestMainConfigJSON(t *testing.T) {
+	if os.Getenv("MAIN_CONFIG_JSON") == "1" {
+		os.Args = []string{"sick-memory", "config", "--json"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	dir := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainConfigJSON$")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "MAIN_CONFIG_JSON=1", "HOME="+home)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("TestMainConfigJSON subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	globalDir := filepath.Join(home, ".sick-memory")
+	if !strings.Contains(got, `"memory_directory":".sick-memory"`) {
+		t.Errorf("expected memory directory in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, `"project_root":""`) {
+		t.Errorf("expected empty project root in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, `"global_directory":"`+globalDir+`"`) {
+		t.Errorf("expected global directory %q in output, got:\n%s", globalDir, got)
+	}
+	if !strings.Contains(got, `"default_memory_type":"user"`) {
+		t.Errorf("expected default memory type in output, got:\n%s", got)
+	}
+}
