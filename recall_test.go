@@ -827,4 +827,3 @@ main search alias test
 		t.Errorf("memory_id = %v, want %q", first["memory_id"], "memory_1")
 	}
 }
-
