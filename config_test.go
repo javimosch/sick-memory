@@ -149,3 +149,26 @@ func TestLoadGlobalConfigLoadsExistingFile(t *testing.T) {
 		t.Errorf("AutoIndex = %v, want false", cfg.AutoIndex)
 	}
 }
+
+func TestGetGlobalSickMemoryDir(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	got := getGlobalSickMemoryDir()
+	want := filepath.Join(home, ".sick-memory")
+	if got != want {
+		t.Errorf("getGlobalSickMemoryDir() = %q, want %q", got, want)
+	}
+}
+
+func TestGetProjectMemoryPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	gitRoot := "/home/user/project"
+	got := getProjectMemoryPath(gitRoot)
+	want := filepath.Join(home, ".sick-memory", "projects", sanitizePath(gitRoot), "memory")
+	if got != want {
+		t.Errorf("getProjectMemoryPath(%q) = %q, want %q", gitRoot, got, want)
+	}
+}
