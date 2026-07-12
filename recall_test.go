@@ -110,6 +110,57 @@ func TestHandleRecallTextNoResults(t *testing.T) {
 	}
 }
 
+func TestHandleRecallTextWithResults(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = false
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir, GlobalConfig: GlobalConfig{AutoIndex: false}}
+
+	created := time.Now().UTC().Format(time.RFC3339)
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: project
+created: `+created+`
+---
+
+Write tests in golang
+`)
+
+	os.Args = []string{"cmd", "recall", "golang"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleRecall(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Found 1 memories matching: golang") {
+		t.Errorf("expected match summary, got %q", got)
+	}
+	if !strings.Contains(got, "ID: memory_1") {
+		t.Errorf("expected memory ID in output, got %q", got)
+	}
+	if !strings.Contains(got, "golang") {
+		t.Errorf("expected content to contain 'golang', got %q", got)
+	}
+}
+
 func TestHandleRecallJSONAllMemories(t *testing.T) {
 	oldJSON := jsonOutput
 	jsonOutput = true
