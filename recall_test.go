@@ -656,3 +656,66 @@ main search alias test
 	}
 }
 
+func TestRecallMain(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	created := time.Now().UTC().Format(time.RFC3339)
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: project
+created: `+created+`
+---
+
+Write tests in golang
+`)
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "recall", "--json", "golang"}
+	memoryDir = dir
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	results, ok := resp.Data.([]interface{})
+	if !ok || len(results) == 0 {
+		t.Fatalf("expected non-empty results, got %T", resp.Data)
+	}
+	first, ok := results[0].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected result map, got %T", results[0])
+	}
+	if first["memory_id"] != "memory_1" {
+		t.Errorf("memory_id = %v, want %q", first["memory_id"], "memory_1")
+	}
+}
+
