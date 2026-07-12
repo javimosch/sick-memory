@@ -133,3 +133,27 @@ func TestHandleInitIndexFileError(t *testing.T) {
 		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
 	}
 }
+
+func TestMainInitJSON(t *testing.T) {
+	if os.Getenv("MAIN_INIT_JSON") == "1" {
+		os.Args = []string{"sick-memory", "init", "--json", "--memory-dir", t.TempDir()}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainInitJSON$")
+	cmd.Env = append(os.Environ(), "MAIN_INIT_JSON=1", "HOME="+home)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("TestMainInitJSON subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, `"status":"initialized"`) {
+		t.Errorf("expected status initialized in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, `"version":"1.0"`) {
+		t.Errorf("expected version 1.0 in output, got:\n%s", got)
+	}
+}
