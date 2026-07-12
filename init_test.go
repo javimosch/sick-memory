@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -82,5 +83,29 @@ func TestHandleInitTextOutput(t *testing.T) {
 	}
 	if !strings.Contains(got, dir) {
 		t.Errorf("expected memory directory path, got %q", got)
+	}
+}
+
+func TestHandleInitDirectoryCreationError(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		jsonOutput = true
+		file := filepath.Join(t.TempDir(), "existing-file")
+		if err := os.WriteFile(file, []byte("x"), 0644); err != nil {
+			t.Fatalf("failed to create file: %v", err)
+		}
+		handleInit(&Config{MemoryDir: file})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestHandleInitDirectoryCreationError", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 92 {
+		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
 	}
 }
