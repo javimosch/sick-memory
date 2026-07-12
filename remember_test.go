@@ -224,3 +224,61 @@ func TestHandleRememberWriteError(t *testing.T) {
 		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
 	}
 }
+
+func TestHandleRememberSkipsGlobalFlags(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = true
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	dir := t.TempDir()
+	cfg := &Config{
+		MemoryDir:    dir,
+		GlobalConfig: GlobalConfig{AutoIndex: false},
+	}
+
+	os.Args = []string{"cmd", "remember", "--json", "--memory-dir", "/tmp", "flag test memory"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleRemember(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	if data["status"] != "remembered" {
+		t.Errorf("status = %v, want %q", data["status"], "remembered")
+	}
+
+	id, ok := data["id"].(string)
+	if !ok || id == "" {
+		t.Fatalf("expected non-empty id, got %v", data["id"])
+	}
+
+	content, err := os.ReadFile(filepath.Join(dir, "memory_"+id+".md"))
+	if err != nil {
+		t.Fatalf("failed to read memory file: %v", err)
+	}
+	if !strings.Contains(string(content), "flag test memory") {
+		t.Errorf("expected memory content to contain %q, got %q", "flag test memory", string(content))
+	}
+}
