@@ -274,3 +274,28 @@ func TestHandleEditMissingArgument(t *testing.T) {
 		t.Errorf("expected exit code 80, got %d", exitErr.ExitCode())
 	}
 }
+
+func TestHandleEditReadFileError(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		jsonOutput = true
+		dir := t.TempDir()
+		if err := os.MkdirAll(filepath.Join(dir, "memory_123.md"), 0755); err != nil {
+			t.Fatalf("failed to create memory directory: %v", err)
+		}
+		os.Args = []string{"cmd", "edit", "123", "new"}
+		handleEdit(&Config{MemoryDir: dir})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestHandleEditReadFileError", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 110 {
+		t.Errorf("expected exit code 110, got %d", exitErr.ExitCode())
+	}
+}
