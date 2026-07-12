@@ -211,3 +211,52 @@ func TestInitMain(t *testing.T) {
 		t.Errorf("expected MEMORY.md index file: %v", err)
 	}
 }
+
+func TestInitMainTextOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "init", "--memory-dir", dir}
+	jsonOutput = false
+	memoryDir = dir
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory system initialized at") {
+		t.Errorf("expected initialization message, got %q", got)
+	}
+	if !strings.Contains(got, dir) {
+		t.Errorf("expected memory directory path, got %q", got)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "MEMORY.md")); err != nil {
+		t.Errorf("expected MEMORY.md index file: %v", err)
+	}
+}
