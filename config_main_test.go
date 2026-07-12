@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -80,5 +81,70 @@ func TestConfigMainJSON(t *testing.T) {
 	}
 	if globalConfig["auto_index"] != true {
 		t.Errorf("expected auto_index true, got %v", globalConfig["auto_index"])
+	}
+}
+
+func TestConfigMainText(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(oldWd)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("failed to change working directory: %v", err)
+	}
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "config"}
+	jsonOutput = false
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	want := []string{
+		"Sick-Memory Configuration:",
+		"Global Directory: " + filepath.Join(home, ".sick-memory"),
+		"Memory Directory: .sick-memory",
+		"Project Root: Not in a git repository",
+		"Storage Mode: Local (fallback)",
+		"Global Configuration:",
+		"Default Memory Type: user",
+		"Max Memory Size: 1048576 bytes",
+		"Auto Index: true",
+		"Configuration File:",
+		filepath.Join(home, ".sick-memory", "config.json"),
+	}
+	for _, w := range want {
+		if !strings.Contains(got, w) {
+			t.Errorf("config text output missing %q, got:\n%s", w, got)
+		}
 	}
 }
