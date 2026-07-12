@@ -173,3 +173,28 @@ func TestHandleListMissingDirectoryText(t *testing.T) {
 		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
 	}
 }
+
+func TestMainListMissingDirectory(t *testing.T) {
+	if os.Getenv("MAIN_LIST_MISSING") == "1" {
+		os.Args = []string{"sick-memory", "list", "--json", "--memory-dir", filepath.Join(t.TempDir(), "does-not-exist")}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=TestMainListMissingDirectory", "-test.v")
+	cmd.Env = append(os.Environ(), "MAIN_LIST_MISSING=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected exit error, got nil")
+	}
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok || exitErr.ExitCode() != 92 {
+		t.Fatalf("expected exit code 92, got %v", err)
+	}
+
+	if !strings.Contains(string(out), "Memory directory not found") {
+		t.Errorf("expected missing directory message, got:\n%s", out)
+	}
+}
