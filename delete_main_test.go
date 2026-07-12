@@ -115,6 +115,34 @@ func TestDeleteMainJSON(t *testing.T) {
 	}
 }
 
+func TestDeleteMainMissingArgument(t *testing.T) {
+	if os.Getenv("DELETE_MAIN_MISSING") == "1" {
+		dir := t.TempDir()
+		t.Setenv("HOME", dir)
+		os.Args = []string{"sick-memory", "delete"}
+		memoryDir = ""
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestDeleteMainMissingArgument$", "-test.v")
+	cmd.Env = append(os.Environ(), "DELETE_MAIN_MISSING=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected exit error, got nil")
+	}
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok || exitErr.ExitCode() != 80 {
+		t.Fatalf("expected exit code 80, got %v", err)
+	}
+
+	if !strings.Contains(string(out), "Memory ID required for delete") {
+		t.Errorf("expected missing argument message, got:\n%s", out)
+	}
+}
+
 func TestDeleteMainMemoryNotFound(t *testing.T) {
 	if os.Getenv("DELETE_MAIN_MEMORY_NOT_FOUND") == "1" {
 		home := os.Getenv("HOME")
