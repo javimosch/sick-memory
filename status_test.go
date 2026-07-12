@@ -246,3 +246,29 @@ func TestHandleStatusReadDirError(t *testing.T) {
 		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
 	}
 }
+
+func TestMainStatus(t *testing.T) {
+	if os.Getenv("MAIN_STATUS") == "1" {
+		os.Args = []string{"sick-memory", "status"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	dir := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainStatus$")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "MAIN_STATUS=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("TestMainStatus subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory system status: uninitialized") {
+		t.Errorf("expected uninitialized status, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Run 'sick-memory init' to initialize.") {
+		t.Errorf("expected init hint, got:\n%s", got)
+	}
+}
