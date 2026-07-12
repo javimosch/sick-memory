@@ -271,3 +271,36 @@ func TestFindGitRepositoryRootOutsideRepo(t *testing.T) {
 		t.Error("findGitRepositoryRoot() expected error when not in a git repository")
 	}
 }
+
+func TestFindGitRepositoryRootFromNested(t *testing.T) {
+	dir := t.TempDir()
+	nested := filepath.Join(dir, "nested", "subdir")
+	if err := os.MkdirAll(nested, 0755); err != nil {
+		t.Fatalf("failed to create nested directory: %v", err)
+	}
+
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(oldWd)
+	if err := os.Chdir(nested); err != nil {
+		t.Fatalf("failed to change working directory: %v", err)
+	}
+
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not installed:", err)
+	}
+
+	if err := exec.Command("git", "init", dir).Run(); err != nil {
+		t.Fatalf("git init failed: %v", err)
+	}
+
+	got, err := findGitRepositoryRoot()
+	if err != nil {
+		t.Fatalf("findGitRepositoryRoot() error = %v", err)
+	}
+	if got != dir {
+		t.Errorf("findGitRepositoryRoot() = %q, want %q", got, dir)
+	}
+}
