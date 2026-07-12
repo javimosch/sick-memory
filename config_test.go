@@ -172,3 +172,13 @@ func TestGetProjectMemoryPath(t *testing.T) {
 		t.Errorf("getProjectMemoryPath(%q) = %q, want %q", gitRoot, got, want)
 	}
 }
+
+func TestGetGlobalSickMemoryDirFallsBackWhenHomeMissing(t *testing.T) {
+	t.Setenv("HOME", "")
+
+	got := getGlobalSickMemoryDir()
+	want := getDefaultMemoryDir()
+	if got != want {
+		t.Errorf("getGlobalSickMemoryDir() = %q, want %q", got, want)
+	}
+}
