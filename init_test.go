@@ -157,3 +157,57 @@ func TestMainInitJSON(t *testing.T) {
 		t.Errorf("expected version 1.0 in output, got:\n%s", got)
 	}
 }
+
+func TestInitMain(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "init", "--json", "--memory-dir", dir}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	if data["status"] != "initialized" {
+		t.Errorf("status = %v, want %q", data["status"], "initialized")
+	}
+	if data["path"] != dir {
+		t.Errorf("path = %v, want %q", data["path"], dir)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "MEMORY.md")); err != nil {
+		t.Errorf("expected MEMORY.md index file: %v", err)
+	}
+}
