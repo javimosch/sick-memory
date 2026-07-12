@@ -373,3 +373,53 @@ func TestHandleEditWriteError(t *testing.T) {
 		t.Errorf("expected exit code 110, got %d", exitErr.ExitCode())
 	}
 }
+
+func TestMainEditText(t *testing.T) {
+	if os.Getenv("MAIN_EDIT_TEXT") == "1" {
+		os.Args = []string{"sick-memory", "edit", "123", "main updated content"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	repo := t.TempDir()
+	if err := exec.Command("git", "-C", repo, "init", "-q").Run(); err != nil {
+		t.Fatalf("failed to init git repo: %v", err)
+	}
+
+	memDir := filepath.Join(home, ".sick-memory", "projects", sanitizePath(repo), "memory")
+	if err := os.MkdirAll(memDir, 0755); err != nil {
+		t.Fatalf("failed to create memory dir: %v", err)
+	}
+
+	writeMemoryFile(t, memDir, "memory_123.md", `---
+name: Memory 123
+description: original
+type: user
+created: 2026-07-11T12:00:00Z
+---
+
+Original content
+`)
+
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainEditText$")
+	cmd.Dir = repo
+	cmd.Env = append(os.Environ(), "MAIN_EDIT_TEXT=1", "HOME="+home)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("TestMainEditText subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory 123 updated successfully") {
+		t.Errorf("expected updated message, got:\n%s", got)
+	}
+
+	updated, err := os.ReadFile(filepath.Join(memDir, "memory_123.md"))
+	if err != nil {
+		t.Fatalf("failed to read updated memory file: %v", err)
+	}
+	if !strings.Contains(string(updated), "main updated content") {
+		t.Errorf("expected updated content in file, got:\n%s", string(updated))
+	}
+}

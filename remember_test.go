@@ -282,3 +282,46 @@ func TestHandleRememberSkipsGlobalFlags(t *testing.T) {
 		t.Errorf("expected memory content to contain %q, got %q", "flag test memory", string(content))
 	}
 }
+
+func TestMainRememberJSON(t *testing.T) {
+	if os.Getenv("MAIN_REMEMBER_JSON") == "1" {
+		os.Args = []string{"sick-memory", "remember", "--json", "main remember test"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	repo := t.TempDir()
+	if err := exec.Command("git", "-C", repo, "init", "-q").Run(); err != nil {
+		t.Fatalf("failed to init git repo: %v", err)
+	}
+
+	memDir := filepath.Join(home, ".sick-memory", "projects", sanitizePath(repo), "memory")
+	if err := os.MkdirAll(memDir, 0755); err != nil {
+		t.Fatalf("failed to create memory dir: %v", err)
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainRememberJSON$")
+	cmd.Dir = repo
+	cmd.Env = append(os.Environ(), "MAIN_REMEMBER_JSON=1", "HOME="+home)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("TestMainRememberJSON subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, `"status":"remembered"`) {
+		t.Errorf("expected remembered status in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, `"version":"1.0"`) {
+		t.Errorf("expected version 1.0 in output, got:\n%s", got)
+	}
+
+	files, err := filepath.Glob(filepath.Join(memDir, "memory_*.md"))
+	if err != nil {
+		t.Fatalf("failed to glob memory files: %v", err)
+	}
+	if len(files) != 1 {
+		t.Errorf("expected 1 memory file, got %d", len(files))
+	}
+}
