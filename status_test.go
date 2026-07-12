@@ -449,3 +449,63 @@ func TestStatusMainJSON(t *testing.T) {
 		t.Errorf("expected path %q, got %v", dir, data["path"])
 	}
 }
+
+func TestStatusMainMemoryDir(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "memory_1.md"), []byte("content"), 0644); err != nil {
+		t.Fatalf("failed to write memory file: %v", err)
+	}
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+
+	os.Args = []string{"sick-memory", "status", "--json", "--memory-dir", dir}
+	jsonOutput = true
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	if data["status"] != "active" {
+		t.Errorf("expected status 'active', got %v", data["status"])
+	}
+	if count, ok := data["count"].(float64); !ok || count != 1 {
+		t.Errorf("expected count 1, got %v", data["count"])
+	}
+	if data["path"] != dir {
+		t.Errorf("expected path %q, got %v", dir, data["path"])
+	}
+}
