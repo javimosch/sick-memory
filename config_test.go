@@ -58,6 +58,42 @@ func TestLoadGlobalConfigIgnoresInvalidJSON(t *testing.T) {
 	}
 }
 
+func TestLoadGlobalConfigIgnoresUnknownFields(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	globalDir := filepath.Join(home, ".sick-memory")
+	if err := os.MkdirAll(globalDir, 0755); err != nil {
+		t.Fatalf("failed to create global dir: %v", err)
+	}
+	configPath := filepath.Join(globalDir, "config.json")
+	if err := os.WriteFile(configPath, []byte(`{
+  "default_memory_type": "project",
+  "unknown_field": "should be ignored",
+  "max_memory_size": 2048,
+  "auto_index": false,
+  "nested": {"ignored": true}
+}`), 0644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	cfg := loadGlobalConfig()
+
+	if cfg.DefaultMemoryType != "project" {
+		t.Errorf("DefaultMemoryType = %q, want %q", cfg.DefaultMemoryType, "project")
+	}
+	if cfg.MaxMemorySize != 2048 {
+		t.Errorf("MaxMemorySize = %d, want %d", cfg.MaxMemorySize, 2048)
+	}
+	if cfg.AutoIndex != false {
+		t.Errorf("AutoIndex = %v, want false", cfg.AutoIndex)
+	}
+
+	if _, err := os.Stat(configPath); err != nil {
+		t.Errorf("expected config file to remain: %v", err)
+	}
+}
+
 func TestLoadGlobalConfigLoadsExistingFile(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
