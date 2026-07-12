@@ -511,6 +511,32 @@ func writeMemoryFile(t *testing.T, dir, name, content string) {
 	}
 }
 
+func TestSearchMemoriesWordOverlapFallback(t *testing.T) {
+	idx := &SearchIndex{
+		TermFreq: map[string]map[string]int{
+			"golang-testing": {"mem1": 1},
+		},
+		DocFreq: map[string]int{
+			"golang-testing": 1,
+		},
+		DocCount: 1,
+		Memories: map[string]Memory{
+			"mem1": {ID: "mem1", Name: "Memory", Description: "", Content: "golang-testing", Type: "user", Created: time.Time{}},
+		},
+	}
+
+	results := searchMemories(idx, "golang testing")
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].MemoryID != "mem1" {
+		t.Errorf("expected mem1, got %s", results[0].MemoryID)
+	}
+	if results[0].Score == 0 {
+		t.Errorf("expected non-zero score from word overlap fallback, got %v", results[0].Score)
+	}
+}
+
 func TestBuildSearchIndexComputesDocFreqAcrossMemories(t *testing.T) {
 	dir := t.TempDir()
 
