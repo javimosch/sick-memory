@@ -284,3 +284,31 @@ func TestDeleteMainMemoryDirTextOutput(t *testing.T) {
 		t.Errorf("expected memory file to be deleted")
 	}
 }
+
+func TestDeleteMainReadDirError(t *testing.T) {
+	if os.Getenv("DELETE_MAIN_READ_DIR") == "1" {
+		dir := filepath.Join(t.TempDir(), "does-not-exist")
+		jsonOutput = true
+		memoryDir = dir
+		os.Args = []string{"sick-memory", "delete", "1"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestDeleteMainReadDirError$", "-test.v")
+	cmd.Env = append(os.Environ(), "DELETE_MAIN_READ_DIR=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected exit error, got nil\n%s", out)
+	}
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok || exitErr.ExitCode() != 92 {
+		t.Fatalf("expected exit code 92, got %v", err)
+	}
+
+	if !strings.Contains(string(out), "Cannot read memory directory") {
+		t.Errorf("expected read directory error message, got:\n%s", out)
+	}
+}
