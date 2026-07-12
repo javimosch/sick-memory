@@ -564,3 +564,49 @@ Write tests in golang
 	}
 }
 
+func TestMainRecallJSON(t *testing.T) {
+	if os.Getenv("MAIN_RECALL_JSON") == "1" {
+		os.Args = []string{"sick-memory", "recall", "--json", "golang"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	repo := t.TempDir()
+	if err := exec.Command("git", "-C", repo, "init", "-q").Run(); err != nil {
+		t.Fatalf("failed to init git repo: %v", err)
+	}
+
+	memDir := filepath.Join(home, ".sick-memory", "projects", sanitizePath(repo), "memory")
+	if err := os.MkdirAll(memDir, 0755); err != nil {
+		t.Fatalf("failed to create memory dir: %v", err)
+	}
+
+	created := time.Now().UTC().Format(time.RFC3339)
+	writeMemoryFile(t, memDir, "memory_1.md", `---
+name: Memory One
+description: golang search
+type: user
+created: `+created+`
+---
+
+main recall test
+`)
+
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainRecallJSON$")
+	cmd.Dir = repo
+	cmd.Env = append(os.Environ(), "MAIN_RECALL_JSON=1", "HOME="+home)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("TestMainRecallJSON subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, `"memory_id":"memory_1"`) {
+		t.Errorf("expected memory_id in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, `"version":"1.0"`) {
+		t.Errorf("expected version 1.0 in output, got:\n%s", got)
+	}
+}
+
