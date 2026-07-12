@@ -611,3 +611,73 @@ func TestMainBridgeMissingArgs(t *testing.T) {
 		t.Errorf("expected bridge usage message, got:\n%s", out)
 	}
 }
+
+func TestBridgeMain(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(oldWd)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("failed to change working directory: %v", err)
+	}
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "bridge", "--json", "claude-code"}
+	jsonOutput = true
+	memoryDir = dir
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	if data["status"] != "bridge_created" {
+		t.Errorf("status = %v, want %q", data["status"], "bridge_created")
+	}
+	if data["agent"] != "claude-code" {
+		t.Errorf("agent = %v, want %q", data["agent"], "claude-code")
+	}
+
+	content, err := os.ReadFile(filepath.Join(dir, ".claude", "CLAUDE.md"))
+	if err != nil {
+		t.Fatalf("failed to read bridge file: %v", err)
+	}
+	if !strings.Contains(string(content), dir) {
+		t.Errorf("expected bridge file to contain memory directory, got %q", string(content))
+	}
+}
