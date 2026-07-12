@@ -775,7 +775,7 @@ func TestCalculateTFIDFScoring(t *testing.T) {
 		DocCount: 2,
 	}
 	got := calculateTFIDF(idx, "golang", "memory_1")
-	want := 3 * math.Log(3.0 / 2.0)
+	want := 3 * math.Log(3.0/2.0)
 	if math.Abs(got-want) > 1e-9 {
 		t.Errorf("calculateTFIDF = %v, want %v", got, want)
 	}
