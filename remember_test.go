@@ -198,3 +198,29 @@ func TestHandleRememberMissingContentInteractive(t *testing.T) {
 		t.Errorf("expected exit code 110, got %d", exitErr.ExitCode())
 	}
 }
+
+func TestHandleRememberWriteError(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		jsonOutput = true
+		dir := t.TempDir()
+		notDir := filepath.Join(dir, "notdir")
+		if err := os.WriteFile(notDir, []byte(""), 0644); err != nil {
+			t.Fatalf("failed to create notdir file: %v", err)
+		}
+		os.Args = []string{"cmd", "remember", "test memory"}
+		handleRemember(&Config{MemoryDir: notDir, GlobalConfig: GlobalConfig{AutoIndex: false}})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestHandleRememberWriteError", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 92 {
+		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
+	}
+}
