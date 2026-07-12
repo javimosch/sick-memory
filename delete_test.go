@@ -120,3 +120,25 @@ func TestHandleDeleteMissingArgument(t *testing.T) {
 		t.Errorf("expected exit code 80, got %d", exitErr.ExitCode())
 	}
 }
+
+func TestHandleDeleteMemoryNotFound(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		jsonOutput = true
+		dir := t.TempDir()
+		os.Args = []string{"cmd", "delete", "999"}
+		handleDelete(&Config{MemoryDir: dir})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestHandleDeleteMemoryNotFound", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 92 {
+		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
+	}
+}

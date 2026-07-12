@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -249,5 +250,27 @@ Original content
 	}
 	if !strings.Contains(string(updated), "First line\nsecond line") {
 		t.Errorf("expected full content after frontmatter, got %q", string(updated))
+	}
+}
+
+func TestHandleEditMissingArgument(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		jsonOutput = true
+		dir := t.TempDir()
+		os.Args = []string{"cmd", "edit", "123"}
+		handleEdit(&Config{MemoryDir: dir})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestHandleEditMissingArgument", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 80 {
+		t.Errorf("expected exit code 80, got %d", exitErr.ExitCode())
 	}
 }
