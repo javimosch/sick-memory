@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestHandleRememberJSON(t *testing.T) {
@@ -464,4 +465,66 @@ func TestRememberMain(t *testing.T) {
 	if _, err := os.ReadFile(filepath.Join(dir, "memory_"+id+".md")); err != nil {
 		t.Errorf("expected memory file to exist: %v", err)
 	}
+}
+
+func TestHandleRememberCreatedTimestamp(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = true
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	dir := t.TempDir()
+	cfg := &Config{
+		MemoryDir:    dir,
+		GlobalConfig: GlobalConfig{AutoIndex: false},
+	}
+
+	os.Args = []string{"cmd", "remember", "timestamp test memory"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleRemember(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	id, ok := data["id"].(string)
+	if !ok || id == "" {
+		t.Fatalf("expected non-empty id, got %v", data["id"])
+	}
+
+	content, err := os.ReadFile(filepath.Join(dir, "memory_"+id+".md"))
+	if err != nil {
+		t.Fatalf("failed to read memory file: %v", err)
+	}
+
+	for _, line := range strings.Split(string(content), "\n") {
+		if strings.HasPrefix(line, "created:") {
+			value := strings.TrimSpace(strings.TrimPrefix(line, "created:"))
+			if _, err := time.Parse(time.RFC3339, value); err != nil {
+				t.Errorf("created timestamp %q is not RFC3339: %v", value, err)
+			}
+			return
+		}
+	}
+	t.Errorf("memory file does not contain a created frontmatter field")
 }
