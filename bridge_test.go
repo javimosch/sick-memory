@@ -179,3 +179,50 @@ func TestHandleBridgeCopilot(t *testing.T) {
 		t.Errorf("expected bridge file to contain memory directory, got %q", string(content))
 	}
 }
+
+func TestHandleBridgeCopilotTextOutput(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = false
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir}
+
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(oldWd)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("failed to change working directory: %v", err)
+	}
+
+	os.Args = []string{"cmd", "bridge", "copilot"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleBridge(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Copilot bridge created successfully") {
+		t.Errorf("expected success message, got %q", got)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, ".copilot", "settings.json")); err != nil {
+		t.Errorf("expected .copilot/settings.json to exist: %v", err)
+	}
+}
