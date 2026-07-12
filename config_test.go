@@ -404,3 +404,45 @@ func TestHandleConfigTextOutput(t *testing.T) {
 		t.Errorf("expected output to contain auto index, got %q", got)
 	}
 }
+
+func TestHandleConfigCentralizedTextOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	projectRoot := t.TempDir()
+	cfg := &Config{
+		MemoryDir:    dir,
+		ProjectRoot:  projectRoot,
+		GlobalConfig: loadGlobalConfig(),
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleConfig(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Sick-Memory Configuration:") {
+		t.Errorf("expected output to contain title, got %q", got)
+	}
+	if !strings.Contains(got, "Project Root:") {
+		t.Errorf("expected output to contain project root, got %q", got)
+	}
+	if !strings.Contains(got, "Storage Mode: Centralized (git-based scoping)") {
+		t.Errorf("expected output to contain centralized storage mode, got %q", got)
+	}
+	if !strings.Contains(got, projectRoot) {
+		t.Errorf("expected output to contain project root path, got %q", got)
+	}
+}
