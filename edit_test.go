@@ -186,3 +186,68 @@ Original content
 		t.Errorf("expected updated message, got %q", got)
 	}
 }
+
+func TestHandleEditJSONTruncatesAtNewline(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = true
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir}
+
+	writeMemoryFile(t, dir, "memory_123.md", `---
+name: Memory 123
+description: original content
+type: user
+created: 2026-07-11T12:00:00Z
+---
+
+Original content
+`)
+
+	os.Args = []string{"cmd", "edit", "123", "First line\nsecond line"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleEdit(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+
+	want := "First line"
+	if data["description"] != want {
+		t.Errorf("description = %v, want %q", data["description"], want)
+	}
+
+	updated, err := os.ReadFile(filepath.Join(dir, "memory_123.md"))
+	if err != nil {
+		t.Fatalf("failed to read updated memory file: %v", err)
+	}
+	if !strings.Contains(string(updated), "description: "+want) {
+		t.Errorf("expected truncated description in frontmatter, got %q", string(updated))
+	}
+	if !strings.Contains(string(updated), "First line\nsecond line") {
+		t.Errorf("expected full content after frontmatter, got %q", string(updated))
+	}
+}
