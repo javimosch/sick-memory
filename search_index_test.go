@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -679,6 +680,41 @@ func TestExtractKeywordsIgnoresShortWords(t *testing.T) {
 	want := []string{"great", "language"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("extractKeywords = %v, want %v", got, want)
+	}
+}
+
+func TestCalculateTFIDFZeroDocCount(t *testing.T) {
+	idx := &SearchIndex{
+		TermFreq: map[string]map[string]int{"golang": {"memory_1": 3}},
+		DocFreq:  map[string]int{"golang": 1},
+		DocCount: 0,
+	}
+	if got := calculateTFIDF(idx, "golang", "memory_1"); got != 0 {
+		t.Errorf("calculateTFIDF = %v, want 0", got)
+	}
+}
+
+func TestCalculateTFIDFScoring(t *testing.T) {
+	idx := &SearchIndex{
+		TermFreq: map[string]map[string]int{"golang": {"memory_1": 3}},
+		DocFreq:  map[string]int{"golang": 1},
+		DocCount: 2,
+	}
+	got := calculateTFIDF(idx, "golang", "memory_1")
+	want := 3 * math.Log(3.0 / 2.0)
+	if math.Abs(got-want) > 1e-9 {
+		t.Errorf("calculateTFIDF = %v, want %v", got, want)
+	}
+}
+
+func TestCalculateTFIDFUnknownTerm(t *testing.T) {
+	idx := &SearchIndex{
+		TermFreq: map[string]map[string]int{},
+		DocFreq:  map[string]int{},
+		DocCount: 2,
+	}
+	if got := calculateTFIDF(idx, "missing", "memory_1"); got != 0 {
+		t.Errorf("calculateTFIDF = %v, want 0", got)
 	}
 }
 
