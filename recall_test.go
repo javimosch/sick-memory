@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -474,6 +476,27 @@ Older content
 	}
 	if second["memory_id"] != "memory_2" {
 		t.Errorf("second result memory_id = %v, want %q", second["memory_id"], "memory_2")
+	}
+}
+
+func TestHandleRecallMissingDirectory(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		jsonOutput = true
+		dir := filepath.Join(t.TempDir(), "does-not-exist")
+		handleRecall(&Config{MemoryDir: dir, GlobalConfig: GlobalConfig{AutoIndex: false}})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestHandleRecallMissingDirectory", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 92 {
+		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
 	}
 }
 
