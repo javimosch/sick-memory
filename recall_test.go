@@ -315,3 +315,84 @@ Write tests in golang
 	}
 }
 
+func TestHandleRecallJSONMultipleResults(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = true
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir, GlobalConfig: GlobalConfig{AutoIndex: false}}
+
+	recent := time.Now().UTC().Format(time.RFC3339)
+	older := time.Now().UTC().Add(-48 * time.Hour).Format(time.RFC3339)
+
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: user
+created: `+recent+`
+---
+
+Write tests in golang
+`)
+
+	writeMemoryFile(t, dir, "memory_2.md", `---
+name: Memory Two
+description: golang code
+type: user
+created: `+older+`
+---
+
+Build a golang project
+`)
+
+	os.Args = []string{"cmd", "recall", "golang"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleRecall(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	results, ok := resp.Data.([]interface{})
+	if !ok {
+		t.Fatalf("expected []interface{}, got %T", resp.Data)
+	}
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+
+	first, ok := results[0].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected result object, got %T", results[0])
+	}
+	if first["memory_id"] != "memory_1" {
+		t.Errorf("first result memory_id = %v, want %q", first["memory_id"], "memory_1")
+	}
+
+	second, ok := results[1].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected result object, got %T", results[1])
+	}
+	if second["memory_id"] != "memory_2" {
+		t.Errorf("second result memory_id = %v, want %q", second["memory_id"], "memory_2")
+	}
+}
+
