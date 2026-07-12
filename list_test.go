@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -130,5 +131,45 @@ func TestHandleListTextOutput(t *testing.T) {
 	}
 	if !strings.Contains(got, "Total memories: 1") {
 		t.Errorf("expected output to contain 'Total memories: 1', got %q", got)
+	}
+}
+
+func TestHandleListMissingDirectoryJSON(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		jsonOutput = true
+		handleList(&Config{MemoryDir: filepath.Join(t.TempDir(), "does-not-exist")})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestHandleListMissingDirectoryJSON", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 92 {
+		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
+	}
+}
+
+func TestHandleListMissingDirectoryText(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		jsonOutput = false
+		handleList(&Config{MemoryDir: filepath.Join(t.TempDir(), "does-not-exist")})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestHandleListMissingDirectoryText", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 92 {
+		t.Errorf("expected exit code 92, got %d", exitErr.ExitCode())
 	}
 }
