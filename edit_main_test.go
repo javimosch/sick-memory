@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -138,5 +139,33 @@ Original content
 	}
 	if !strings.Contains(string(updated), "new main text") {
 		t.Errorf("expected updated content in file, got:\n%s", string(updated))
+	}
+}
+
+func TestEditMainMissingArgument(t *testing.T) {
+	if os.Getenv("EDIT_MAIN_MISSING") == "1" {
+		dir := t.TempDir()
+		t.Setenv("HOME", dir)
+		os.Args = []string{"sick-memory", "edit"}
+		memoryDir = ""
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestEditMainMissingArgument$", "-test.v")
+	cmd.Env = append(os.Environ(), "EDIT_MAIN_MISSING=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected exit error, got nil")
+	}
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok || exitErr.ExitCode() != 80 {
+		t.Fatalf("expected exit code 80, got %v", err)
+	}
+
+	if !strings.Contains(string(out), "Memory ID and new content required") {
+		t.Errorf("expected missing argument message, got:\n%s", out)
 	}
 }
