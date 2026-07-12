@@ -206,3 +206,62 @@ func TestEditMainMissingArgument(t *testing.T) {
 		t.Errorf("expected missing argument message, got:\n%s", out)
 	}
 }
+
+func TestEditMainReadDirError(t *testing.T) {
+	if os.Getenv("EDIT_MAIN_READ_DIR") == "1" {
+		dir := filepath.Join(t.TempDir(), "does-not-exist")
+		memoryDir = dir
+		jsonOutput = true
+		os.Args = []string{"sick-memory", "edit", "1", "new content"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestEditMainReadDirError$", "-test.v")
+	cmd.Env = append(os.Environ(), "EDIT_MAIN_READ_DIR=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected exit error, got nil")
+	}
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok || exitErr.ExitCode() != 92 {
+		t.Fatalf("expected exit code 92, got %v", err)
+	}
+
+	if !strings.Contains(string(out), "Cannot read memory directory") {
+		t.Errorf("expected read directory error message, got:\n%s", out)
+	}
+}
+
+func TestEditMainReadFileError(t *testing.T) {
+	if os.Getenv("EDIT_MAIN_READ_FILE") == "1" {
+		dir := t.TempDir()
+		if err := os.MkdirAll(filepath.Join(dir, "memory_1.md"), 0755); err != nil {
+			t.Fatalf("failed to create blocking memory directory: %v", err)
+		}
+		memoryDir = dir
+		jsonOutput = true
+		os.Args = []string{"sick-memory", "edit", "1", "new content"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestEditMainReadFileError$", "-test.v")
+	cmd.Env = append(os.Environ(), "EDIT_MAIN_READ_FILE=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected exit error, got nil")
+	}
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok || exitErr.ExitCode() != 110 {
+		t.Fatalf("expected exit code 110, got %v", err)
+	}
+
+	if !strings.Contains(string(out), "Cannot read memory file") {
+		t.Errorf("expected read file error message, got:\n%s", out)
+	}
+}
