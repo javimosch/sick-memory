@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -327,6 +328,24 @@ func TestBuildSearchIndexNonExistentDirectory(t *testing.T) {
 	index, err := buildSearchIndex(nonExistentPath)
 	if err == nil {
 		t.Fatal("expected error for non-existent directory, got nil")
+	}
+	if index != nil {
+		t.Fatalf("expected nil index on error, got %v", index)
+	}
+}
+
+func TestLoadSearchIndexPropagatesBuildError(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create a file where loadSearchIndex expects a directory.
+	filePath := filepath.Join(dir, "not-a-directory")
+	if err := os.WriteFile(filePath, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	index, err := loadSearchIndex(filePath)
+	if err == nil {
+		t.Fatal("expected error when buildSearchIndex fails, got nil")
 	}
 	if index != nil {
 		t.Fatalf("expected nil index on error, got %v", index)
@@ -663,6 +682,64 @@ Write tests in golang
 	}
 	if index.TermFreq["golang"]["memory_2"] != 2 {
 		t.Errorf("TermFreq[golang][memory_2] = %d, want 2", index.TermFreq["golang"]["memory_2"])
+	}
+}
+
+func TestExtractKeywordsTrimsPunctuationAndStops(t *testing.T) {
+	got := extractKeywords("The a an of at Golang, testing! Rust.")
+	want := []string{"golang", "testing", "rust"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("extractKeywords = %v, want %v", got, want)
+	}
+}
+
+func TestExtractKeywordsIgnoresShortWords(t *testing.T) {
+	got := extractKeywords("Go is a great language")
+	want := []string{"great", "language"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("extractKeywords = %v, want %v", got, want)
+	}
+}
+
+func TestCalculateTFIDFZeroDocCount(t *testing.T) {
+	idx := &SearchIndex{
+		TermFreq: map[string]map[string]int{"golang": {"memory_1": 3}},
+		DocFreq:  map[string]int{"golang": 1},
+		DocCount: 0,
+	}
+	if got := calculateTFIDF(idx, "golang", "memory_1"); got != 0 {
+		t.Errorf("calculateTFIDF = %v, want 0", got)
+	}
+}
+
+func TestCalculateTFIDFScoring(t *testing.T) {
+	idx := &SearchIndex{
+		TermFreq: map[string]map[string]int{"golang": {"memory_1": 3}},
+		DocFreq:  map[string]int{"golang": 1},
+		DocCount: 2,
+	}
+	got := calculateTFIDF(idx, "golang", "memory_1")
+	want := 3 * math.Log(3.0 / 2.0)
+	if math.Abs(got-want) > 1e-9 {
+		t.Errorf("calculateTFIDF = %v, want %v", got, want)
+	}
+}
+
+func TestCalculateTFIDFUnknownTerm(t *testing.T) {
+	idx := &SearchIndex{
+		TermFreq: map[string]map[string]int{},
+		DocFreq:  map[string]int{},
+		DocCount: 2,
+	}
+	if got := calculateTFIDF(idx, "missing", "memory_1"); got != 0 {
+		t.Errorf("calculateTFIDF = %v, want 0", got)
+	}
+}
+
+func TestExtractKeywordsEmptyString(t *testing.T) {
+	got := extractKeywords("")
+	if len(got) != 0 {
+		t.Errorf("expected empty keywords, got %v", got)
 	}
 }
 
