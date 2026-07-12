@@ -409,6 +409,30 @@ Write tests in golang
 	}
 }
 
+func TestBuildSearchIndexMemoryWithOnlyStopWords(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", "the a an of at")
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 1 {
+		t.Errorf("DocCount = %d, want 1", index.DocCount)
+	}
+	if _, ok := index.Memories["memory_1"]; !ok {
+		t.Errorf("expected memory_1 to be indexed, got %v", index.Memories)
+	}
+	if len(index.TermFreq) != 0 {
+		t.Errorf("TermFreq count = %d, want 0", len(index.TermFreq))
+	}
+}
+
 func writeMemoryFile(t *testing.T, dir, name, content string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {

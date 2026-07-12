@@ -11,6 +11,10 @@ go test -count=1 ./...
 echo "Running vet..."
 go vet ./...
 
+SMOKE_DIR=$(mktemp -d)
+OPT_SMOKE_DIR=$(mktemp -d)
+trap 'rm -rf "$SMOKE_DIR" "$OPT_SMOKE_DIR"' EXIT
+
 # Build sick-memory CLI - Default
 echo "Building sick-memory default..."
 CGO_ENABLED=0 go build -trimpath -o sick-memory .
@@ -20,6 +24,12 @@ ls -lh sick-memory
 echo "Smoke testing sick-memory default binary..."
 ./sick-memory --version
 
+echo "Smoke testing core commands with temporary memory dir..."
+./sick-memory init --memory-dir "$SMOKE_DIR"
+./sick-memory remember "Smoke test memory" --memory-dir "$SMOKE_DIR"
+./sick-memory list --memory-dir "$SMOKE_DIR"
+./sick-memory status --memory-dir "$SMOKE_DIR"
+
 # Build sick-memory CLI - Optimized (size + performance)
 echo "Building sick-memory optimized..."
 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o sick-memory-optimized .
@@ -28,3 +38,9 @@ ls -lh sick-memory-optimized
 # Smoke test the optimized binary too
 echo "Smoke testing sick-memory optimized binary..."
 ./sick-memory-optimized --version
+
+echo "Smoke testing core commands with optimized binary..."
+./sick-memory-optimized init --memory-dir "$OPT_SMOKE_DIR"
+./sick-memory-optimized remember "Smoke test optimized" --memory-dir "$OPT_SMOKE_DIR"
+./sick-memory-optimized list --memory-dir "$OPT_SMOKE_DIR"
+./sick-memory-optimized status --memory-dir "$OPT_SMOKE_DIR"
