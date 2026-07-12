@@ -511,6 +511,87 @@ func writeMemoryFile(t *testing.T, dir, name, content string) {
 	}
 }
 
+func TestSearchMemoriesWordOverlapFallback(t *testing.T) {
+	idx := &SearchIndex{
+		TermFreq: map[string]map[string]int{
+			"golang-testing": {"mem1": 1},
+		},
+		DocFreq: map[string]int{
+			"golang-testing": 1,
+		},
+		DocCount: 1,
+		Memories: map[string]Memory{
+			"mem1": {ID: "mem1", Name: "Memory", Description: "", Content: "golang-testing", Type: "user", Created: time.Time{}},
+		},
+	}
+
+	results := searchMemories(idx, "golang testing")
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].MemoryID != "mem1" {
+		t.Errorf("expected mem1, got %s", results[0].MemoryID)
+	}
+	if results[0].Score == 0 {
+		t.Errorf("expected non-zero score from word overlap fallback, got %v", results[0].Score)
+	}
+}
+
+func TestSearchMemoriesTypeBoost(t *testing.T) {
+	idx := &SearchIndex{
+		TermFreq: map[string]map[string]int{
+			"golang": {"mem1": 1, "mem2": 1},
+		},
+		DocFreq: map[string]int{
+			"golang": 2,
+		},
+		DocCount: 2,
+		Memories: map[string]Memory{
+			"mem1": {ID: "mem1", Name: "Project Memory", Description: "", Content: "golang", Type: "project", Created: time.Time{}},
+			"mem2": {ID: "mem2", Name: "User Memory", Description: "", Content: "golang", Type: "user", Created: time.Time{}},
+		},
+	}
+
+	results := searchMemories(idx, "golang")
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	if results[0].MemoryID != "mem1" {
+		t.Errorf("expected project memory mem1 to rank first, got %s", results[0].MemoryID)
+	}
+	if results[0].Score <= results[1].Score {
+		t.Errorf("expected project memory score %v to be higher than user memory score %v", results[0].Score, results[1].Score)
+	}
+}
+
+func TestSearchMemoriesRecencyBoost(t *testing.T) {
+	now := time.Now()
+	idx := &SearchIndex{
+		TermFreq: map[string]map[string]int{
+			"golang": {"mem1": 1, "mem2": 1},
+		},
+		DocFreq: map[string]int{
+			"golang": 2,
+		},
+		DocCount: 2,
+		Memories: map[string]Memory{
+			"mem1": {ID: "mem1", Name: "Recent Memory", Description: "", Content: "golang", Type: "user", Created: now},
+			"mem2": {ID: "mem2", Name: "Older Memory", Description: "", Content: "golang", Type: "user", Created: now.Add(-48 * time.Hour)},
+		},
+	}
+
+	results := searchMemories(idx, "golang")
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	if results[0].MemoryID != "mem1" {
+		t.Errorf("expected recent memory mem1 to rank first, got %s", results[0].MemoryID)
+	}
+	if results[0].Score <= results[1].Score {
+		t.Errorf("expected recent memory score %v to be higher than older memory score %v", results[0].Score, results[1].Score)
+	}
+}
+
 func TestBuildSearchIndexComputesDocFreqAcrossMemories(t *testing.T) {
 	dir := t.TempDir()
 
