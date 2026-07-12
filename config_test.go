@@ -94,6 +94,32 @@ func TestLoadGlobalConfigIgnoresUnknownFields(t *testing.T) {
 	}
 }
 
+func TestLoadGlobalConfigFillsMissingFieldsWithDefaults(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	globalDir := filepath.Join(home, ".sick-memory")
+	if err := os.MkdirAll(globalDir, 0755); err != nil {
+		t.Fatalf("failed to create global dir: %v", err)
+	}
+	configPath := filepath.Join(globalDir, "config.json")
+	if err := os.WriteFile(configPath, []byte(`{"default_memory_type": "project"}`), 0644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	cfg := loadGlobalConfig()
+
+	if cfg.DefaultMemoryType != "project" {
+		t.Errorf("DefaultMemoryType = %q, want %q", cfg.DefaultMemoryType, "project")
+	}
+	if cfg.MaxMemorySize != 1024*1024 {
+		t.Errorf("MaxMemorySize = %d, want %d", cfg.MaxMemorySize, 1024*1024)
+	}
+	if cfg.AutoIndex != true {
+		t.Errorf("AutoIndex = %v, want true", cfg.AutoIndex)
+	}
+}
+
 func TestLoadGlobalConfigLoadsExistingFile(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
