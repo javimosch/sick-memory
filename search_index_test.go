@@ -559,6 +559,32 @@ func writeMemoryFile(t *testing.T, dir, name, content string) {
 	}
 }
 
+func TestSearchMemoriesExactPhrase(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", "golang testing project")
+	writeMemoryFile(t, dir, "memory_2.md", "golang project")
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	results := searchMemories(index, "golang testing")
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	if results[0].MemoryID != "memory_1" {
+		t.Errorf("expected exact-phrase memory memory_1 to rank first, got %s", results[0].MemoryID)
+	}
+	if results[0].Score <= results[1].Score {
+		t.Errorf("expected exact-phrase score %v to be higher than non-phrase score %v", results[0].Score, results[1].Score)
+	}
+}
+
 func TestSearchMemoriesWordOverlapFallback(t *testing.T) {
 	idx := &SearchIndex{
 		TermFreq: map[string]map[string]int{
