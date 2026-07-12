@@ -164,6 +164,45 @@ Write tests in golang
 	}
 }
 
+func TestBuildSearchIndexIgnoresSubdirectories(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: project
+created: 2026-07-11T12:00:00Z
+---
+Write tests in golang
+`)
+
+	subDir := filepath.Join(dir, "nested")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatalf("failed to create nested directory: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(subDir, "memory_2.md"), []byte("should be ignored"), 0644); err != nil {
+		t.Fatalf("failed to write nested memory: %v", err)
+	}
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 1 {
+		t.Errorf("DocCount = %d, want 1", index.DocCount)
+	}
+	if _, ok := index.Memories["memory_1"]; !ok {
+		t.Errorf("expected memory_1 to be indexed, got %v", index.Memories)
+	}
+	if _, ok := index.Memories["memory_2"]; ok {
+		t.Errorf("did not expect nested memory_2.md to be indexed")
+	}
+}
+
 func TestLoadSearchIndexUsesCacheFile(t *testing.T) {
 	dir := t.TempDir()
 
