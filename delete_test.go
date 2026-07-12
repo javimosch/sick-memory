@@ -256,3 +256,44 @@ func TestMainDelete(t *testing.T) {
 		t.Errorf("expected memory file to be deleted")
 	}
 }
+
+func TestMainDeleteJSON(t *testing.T) {
+	if os.Getenv("MAIN_DELETE_JSON") == "1" {
+		os.Args = []string{"sick-memory", "delete", "123", "--json"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	repo := t.TempDir()
+	if err := exec.Command("git", "-C", repo, "init", "-q").Run(); err != nil {
+		t.Fatalf("failed to init git repo: %v", err)
+	}
+
+	memDir := filepath.Join(home, ".sick-memory", "projects", sanitizePath(repo), "memory")
+	if err := os.MkdirAll(memDir, 0755); err != nil {
+		t.Fatalf("failed to create memory dir: %v", err)
+	}
+
+	writeMemoryFile(t, memDir, "memory_123.md", "content")
+
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainDeleteJSON$")
+	cmd.Dir = repo
+	cmd.Env = append(os.Environ(), "MAIN_DELETE_JSON=1", "HOME="+home)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("TestMainDeleteJSON subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, `"id": "123"`) {
+		t.Errorf("expected id in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, `"status": "deleted"`) {
+		t.Errorf("expected status deleted in output, got:\n%s", got)
+	}
+
+	if _, err := os.Stat(filepath.Join(memDir, "memory_123.md")); !os.IsNotExist(err) {
+		t.Errorf("expected memory file to be deleted")
+	}
+}
