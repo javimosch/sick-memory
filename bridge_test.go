@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -387,5 +388,25 @@ func TestHandleBridgeSkipsGlobalFlags(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Join(dir, ".claude", "CLAUDE.md")); err != nil {
 		t.Errorf("expected .claude/CLAUDE.md to exist: %v", err)
+	}
+}
+
+func TestHandleBridgeMissingArgs(t *testing.T) {
+	if os.Getenv("EXIT_TEST") == "1" {
+		os.Args = []string{"cmd", "bridge"}
+		handleBridge(&Config{MemoryDir: ""})
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestHandleBridgeMissingArgs", "-test.v")
+	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
+	err := cmd.Run()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v", err)
+	}
+	if exitErr.ExitCode() != 85 {
+		t.Errorf("expected exit code 85, got %d", exitErr.ExitCode())
 	}
 }
