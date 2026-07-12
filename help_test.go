@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -41,5 +42,25 @@ func TestPrintHelp(t *testing.T) {
 		if !strings.Contains(got, w) {
 			t.Errorf("help output missing %q, got:\n%s", w, got)
 		}
+	}
+}
+
+func TestMainHelp(t *testing.T) {
+	if os.Getenv("MAIN_HELP") == "1" {
+		os.Args = []string{"sick-memory", "help"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=TestMainHelp", "-test.v")
+	cmd.Env = append(os.Environ(), "MAIN_HELP=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("TestMainHelp subprocess failed: %v\n%s", err, out)
+	}
+
+	if !strings.Contains(string(out), "sick-memory - File-based memory system for AI coding agents") {
+		t.Errorf("expected help output, got:\n%s", out)
 	}
 }
