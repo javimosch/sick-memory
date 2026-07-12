@@ -45,6 +45,10 @@ HOME="$SMOKE_DIR/home" ./sick-memory config --memory-dir "$SMOKE_DIR"
   cd "$BRIDGE_DIR"
   "$REPO_ROOT/sick-memory" bridge claude-code --memory-dir "$SMOKE_DIR"
   [ -f .claude/CLAUDE.md ]
+  "$REPO_ROOT/sick-memory" bridge opencode --memory-dir "$SMOKE_DIR"
+  [ -f .opencode/memory.json ]
+  "$REPO_ROOT/sick-memory" bridge copilot --memory-dir "$SMOKE_DIR"
+  [ -f .copilot/settings.json ]
 )
 
 # Build sick-memory CLI - Optimized (size + performance)
