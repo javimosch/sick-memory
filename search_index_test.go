@@ -525,6 +525,36 @@ func TestBuildSearchIndexSkipsEmptyMemoryID(t *testing.T) {
 	}
 }
 
+func TestBuildSearchIndexSkipsReadFileError(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", "golang content")
+
+	// Create a directory that matches the memory file pattern; os.ReadFile
+	// returns an error for directories, so buildSearchIndex should skip it.
+	if err := os.MkdirAll(filepath.Join(dir, "memory_2.md"), 0755); err != nil {
+		t.Fatalf("failed to create blocking directory: %v", err)
+	}
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 1 {
+		t.Errorf("DocCount = %d, want 1", index.DocCount)
+	}
+	if _, ok := index.Memories["memory_1"]; !ok {
+		t.Errorf("expected memory_1 to be indexed, got %v", index.Memories)
+	}
+	if _, ok := index.Memories["memory_2"]; ok {
+		t.Errorf("did not expect directory memory_2.md to be indexed")
+	}
+}
+
 func TestBuildSearchIndexPopulatesCreated(t *testing.T) {
 	dir := t.TempDir()
 

@@ -5,6 +5,9 @@ set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")"
 REPO_ROOT=$(pwd)
 
+# Remove any stale binaries from previous builds so the release artifacts are always fresh.
+rm -f sick-memory sick-memory-optimized
+
 # Run tests and static analysis before producing release binaries
 echo "Running tests..."
 go test -race -count=1 ./...
