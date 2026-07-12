@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 )
 
@@ -154,6 +155,31 @@ func TestSuccessResponseMarshalError(t *testing.T) {
 	}
 	if exitErr.ExitCode() != 110 {
 		t.Errorf("expected exit code 110, got %d", exitErr.ExitCode())
+	}
+}
+
+func TestMainErrorResponse(t *testing.T) {
+	if os.Getenv("MAIN_ERROR") == "1" {
+		os.Args = []string{"sick-memory", "remember", "--no-interactive"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=TestMainErrorResponse", "-test.v")
+	cmd.Env = append(os.Environ(), "MAIN_ERROR=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected exit error, got %v\n%s", err, out)
+	}
+	if exitErr.ExitCode() != 85 {
+		t.Errorf("expected exit code 85, got %d", exitErr.ExitCode())
+	}
+
+	if !strings.Contains(string(out), "Content required for remember command") {
+		t.Errorf("expected error response output, got:\n%s", out)
 	}
 }
 
