@@ -884,3 +884,44 @@ rust programming
 		t.Errorf("expected 0 results for stop-word-only query, got %d", len(results))
 	}
 }
+
+func TestSearchMemoriesExactPhraseCaseInsensitive(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: project
+created: 2026-07-11T12:00:00Z
+---
+golang testing project
+`)
+
+	writeMemoryFile(t, dir, "memory_2.md", `---
+name: Memory Two
+description: rust project
+type: user
+created: 2026-07-11T12:00:00Z
+---
+GOLANG TESTING rust
+`)
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	results := searchMemories(index, "GOLANG TESTING")
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	if results[0].MemoryID != "memory_1" {
+		t.Errorf("expected project memory memory_1 to rank first, got %s", results[0].MemoryID)
+	}
+	if results[0].Score <= results[1].Score {
+		t.Errorf("expected memory_1 score %v to be higher than memory_2 score %v", results[0].Score, results[1].Score)
+	}
+}
