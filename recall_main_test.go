@@ -441,3 +441,60 @@ main search all memories
 		t.Fatalf("expected 1 result, got %T %v", resp.Data, resp.Data)
 	}
 }
+
+func TestSearchMainNoQueryTextOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	created := time.Now().UTC().Format(time.RFC3339)
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: search all text
+type: project
+created: `+created+`
+---
+main search all memories text
+`)
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "search"}
+	jsonOutput = false
+	memoryDir = dir
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "All memories in") {
+		t.Errorf("expected all memories header, got %q", got)
+	}
+	if !strings.Contains(got, "ID: memory_1") {
+		t.Errorf("expected memory ID in output, got %q", got)
+	}
+	if !strings.Contains(got, "Total memories: 1") {
+		t.Errorf("expected total memories count, got %q", got)
+	}
+}
