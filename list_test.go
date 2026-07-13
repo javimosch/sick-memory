@@ -751,3 +751,50 @@ func TestLsMainMemoryDirTextOutput(t *testing.T) {
 		t.Errorf("expected total memories count, got %q", got)
 	}
 }
+
+func TestHandleListIgnoresHiddenFiles(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = true
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir}
+
+	if err := os.WriteFile(filepath.Join(dir, "memory_1.md"), []byte("content"), 0644); err != nil {
+		t.Fatalf("failed to write memory file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".memory_2.md"), []byte("hidden"), 0644); err != nil {
+		t.Fatalf("failed to write hidden memory file: %v", err)
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleList(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	ids, ok := resp.Data.([]interface{})
+	if !ok {
+		t.Fatalf("expected []interface{}, got %T", resp.Data)
+	}
+	if len(ids) != 1 {
+		t.Fatalf("expected 1 memory ID, got %d", len(ids))
+	}
+	if ids[0] != "memory_1.md" {
+		t.Errorf("expected memory_1.md, got %v", ids[0])
+	}
+}
