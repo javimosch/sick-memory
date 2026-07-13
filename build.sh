@@ -31,6 +31,7 @@ ls -lh sick-memory
 echo "Smoke testing sick-memory default binary..."
 ./sick-memory --version
 ./sick-memory -v
+./sick-memory version
 ./sick-memory --help
 ./sick-memory -h
 ./sick-memory help
@@ -84,6 +85,7 @@ ls -lh sick-memory-optimized
 echo "Smoke testing sick-memory optimized binary..."
 ./sick-memory-optimized --version
 ./sick-memory-optimized -v
+./sick-memory-optimized version
 ./sick-memory-optimized --help
 ./sick-memory-optimized -h
 ./sick-memory-optimized help
