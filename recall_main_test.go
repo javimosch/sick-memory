@@ -274,3 +274,57 @@ main search memory dir test
 		t.Errorf("memory_id = %v, want %q", first["memory_id"], "memory_1")
 	}
 }
+
+func TestSearchMainMemoryDirTextOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	created := time.Now().UTC().Format(time.RFC3339)
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang search
+type: project
+created: `+created+`
+---
+main search memory dir text
+`)
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "search", "golang", "--memory-dir", dir}
+	jsonOutput = false
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Found 1 memories matching: golang") {
+		t.Errorf("expected match summary, got %q", got)
+	}
+	if !strings.Contains(got, "ID: memory_1") {
+		t.Errorf("expected memory ID in output, got %q", got)
+	}
+}
