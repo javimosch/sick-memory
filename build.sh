@@ -92,6 +92,11 @@ OPT_MEMORY_ID=$(./sick-memory-optimized remember "Smoke test optimized" --memory
 ./sick-memory-optimized delete "$OPT_MEMORY_ID" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized status --memory-dir "$OPT_SMOKE_DIR"
 
+# Smoke test command aliases in the optimized binary
+OPT_MEMORY_ID=$(./sick-memory-optimized keep "Alias smoke optimized" --memory-dir "$OPT_SMOKE_DIR" | awk '{print $NF}')
+./sick-memory-optimized ls --memory-dir "$OPT_SMOKE_DIR"
+./sick-memory-optimized delete "$OPT_MEMORY_ID" --memory-dir "$OPT_SMOKE_DIR"
+
 # Smoke test JSON output with the optimized binary
 ./sick-memory-optimized list --json --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized status --json --memory-dir "$OPT_SMOKE_DIR"
