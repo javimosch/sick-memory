@@ -702,6 +702,55 @@ main recall text test
 	}
 }
 
+func TestMainRecallNoQueryText(t *testing.T) {
+	if os.Getenv("MAIN_RECALL_NO_QUERY_TEXT") == "1" {
+		os.Args = []string{"sick-memory", "recall"}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	repo := t.TempDir()
+	if err := exec.Command("git", "-C", repo, "init", "-q").Run(); err != nil {
+		t.Fatalf("failed to init git repo: %v", err)
+	}
+
+	memDir := filepath.Join(home, ".sick-memory", "projects", sanitizePath(repo), "memory")
+	if err := os.MkdirAll(memDir, 0755); err != nil {
+		t.Fatalf("failed to create memory dir: %v", err)
+	}
+
+	created := time.Now().UTC().Format(time.RFC3339)
+	writeMemoryFile(t, memDir, "memory_1.md", `---
+name: Memory One
+description: all memories
+type: user
+created: `+created+`
+---
+
+main recall no query text test
+`)
+
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainRecallNoQueryText$")
+	cmd.Dir = repo
+	cmd.Env = append(os.Environ(), "MAIN_RECALL_NO_QUERY_TEXT=1", "HOME="+home)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("TestMainRecallNoQueryText subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "All memories in") {
+		t.Errorf("expected all memories header, got:\n%s", got)
+	}
+	if !strings.Contains(got, "ID: memory_1") {
+		t.Errorf("expected memory ID in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Total memories: 1") {
+		t.Errorf("expected total memories count, got:\n%s", got)
+	}
+}
+
 func TestRecallMain(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
