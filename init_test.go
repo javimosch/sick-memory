@@ -97,7 +97,7 @@ func TestHandleInitDirectoryCreationError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleInitDirectoryCreationError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleInitDirectoryCreationError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -121,7 +121,7 @@ func TestHandleInitIndexFileError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleInitIndexFileError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleInitIndexFileError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
