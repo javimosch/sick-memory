@@ -165,7 +165,7 @@ func TestHandleRememberMissingContentNoInteractive(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleRememberMissingContentNoInteractive", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleRememberMissingContentNoInteractive$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -187,7 +187,7 @@ func TestHandleRememberMissingContentInteractive(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleRememberMissingContentInteractive", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleRememberMissingContentInteractive$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -213,7 +213,7 @@ func TestHandleRememberWriteError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleRememberWriteError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleRememberWriteError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 

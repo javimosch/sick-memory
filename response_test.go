@@ -199,7 +199,7 @@ func TestSuccessResponseMarshalError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestSuccessResponseMarshalError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestSuccessResponseMarshalError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -220,7 +220,7 @@ func TestMainErrorResponse(t *testing.T) {
 	}
 
 	home := t.TempDir()
-	cmd := exec.Command(os.Args[0], "-test.run=TestMainErrorResponse", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainErrorResponse$", "-test.v")
 	cmd.Env = append(os.Environ(), "MAIN_ERROR=1", "HOME="+home)
 	out, err := cmd.CombinedOutput()
 

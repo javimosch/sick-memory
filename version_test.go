@@ -59,7 +59,7 @@ func TestMainLongVersion(t *testing.T) {
 	}
 
 	home := t.TempDir()
-	cmd := exec.Command(os.Args[0], "-test.run=TestMainLongVersion", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainLongVersion$", "-test.v")
 	cmd.Env = append(os.Environ(), "MAIN_LONG_VERSION=1", "HOME="+home)
 	out, err := cmd.CombinedOutput()
 	if err != nil {

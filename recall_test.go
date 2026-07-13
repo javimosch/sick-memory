@@ -487,7 +487,7 @@ func TestHandleRecallMissingDirectory(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleRecallMissingDirectory", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleRecallMissingDirectory$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
