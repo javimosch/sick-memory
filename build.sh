@@ -42,6 +42,11 @@ MEMORY_ID=$(./sick-memory remember "Smoke test memory" --memory-dir "$SMOKE_DIR"
 ./sick-memory delete "$MEMORY_ID" --memory-dir "$SMOKE_DIR"
 ./sick-memory status --memory-dir "$SMOKE_DIR"
 
+# Smoke test command aliases in the default binary
+MEMORY_ID=$(./sick-memory keep "Alias smoke memory" --memory-dir "$SMOKE_DIR" | awk '{print $NF}')
+./sick-memory ls --memory-dir "$SMOKE_DIR"
+./sick-memory delete "$MEMORY_ID" --memory-dir "$SMOKE_DIR"
+
 # Smoke test JSON output for a subset of commands
 ./sick-memory init --memory-dir "$JSON_SMOKE_DIR"
 ./sick-memory list --json --memory-dir "$JSON_SMOKE_DIR"
