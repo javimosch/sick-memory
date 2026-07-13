@@ -30,6 +30,9 @@ ls -lh sick-memory
 # Smoke test the freshly built binary
 echo "Smoke testing sick-memory default binary..."
 ./sick-memory --version
+./sick-memory -v
+./sick-memory --help
+./sick-memory -h
 ./sick-memory help
 
 echo "Smoke testing core commands with temporary memory dir..."
@@ -80,6 +83,9 @@ ls -lh sick-memory-optimized
 # Smoke test the optimized binary too
 echo "Smoke testing sick-memory optimized binary..."
 ./sick-memory-optimized --version
+./sick-memory-optimized -v
+./sick-memory-optimized --help
+./sick-memory-optimized -h
 ./sick-memory-optimized help
 
 echo "Smoke testing core commands with optimized binary..."
