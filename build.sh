@@ -52,7 +52,9 @@ MEMORY_ID=$(./sick-memory keep "Alias smoke memory" --memory-dir "$SMOKE_DIR" | 
 ./sick-memory delete "$MEMORY_ID" --memory-dir "$SMOKE_DIR"
 
 # Smoke test JSON output for a subset of commands
-./sick-memory init --memory-dir "$JSON_SMOKE_DIR"
+INIT_OUTPUT=$(./sick-memory init --json --memory-dir "$JSON_SMOKE_DIR")
+echo "$INIT_OUTPUT" | grep -q '"status":"initialized"'
+echo "$INIT_OUTPUT" | grep -q '"path":"'
 ./sick-memory list --json --memory-dir "$JSON_SMOKE_DIR"
 ./sick-memory status --json --memory-dir "$JSON_SMOKE_DIR"
 ./sick-memory config --json --memory-dir "$JSON_SMOKE_DIR"
@@ -114,6 +116,9 @@ OPT_MEMORY_ID=$(./sick-memory-optimized keep "Alias smoke optimized" --memory-di
 ./sick-memory-optimized delete "$OPT_MEMORY_ID" --memory-dir "$OPT_SMOKE_DIR"
 
 # Smoke test JSON output with the optimized binary
+OPT_INIT_OUTPUT=$(./sick-memory-optimized init --json --memory-dir "$OPT_SMOKE_DIR")
+echo "$OPT_INIT_OUTPUT" | grep -q '"status":"initialized"'
+echo "$OPT_INIT_OUTPUT" | grep -q '"path":"'
 ./sick-memory-optimized list --json --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized status --json --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized config --json --memory-dir "$OPT_SMOKE_DIR"
