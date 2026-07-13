@@ -219,6 +219,54 @@ func TestHandleStatusActiveWithMemories(t *testing.T) {
 	}
 }
 
+func TestHandleStatusActiveWithMemoriesTextOutput(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = false
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir}
+
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("failed to create memory dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "memory_1.md"), []byte("content"), 0644); err != nil {
+		t.Fatalf("failed to write memory file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("not a memory"), 0644); err != nil {
+		t.Fatalf("failed to write README file: %v", err)
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleStatus(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory system status: active") {
+		t.Errorf("expected active status, got %q", got)
+	}
+	if !strings.Contains(got, "Memory directory: "+dir) {
+		t.Errorf("expected memory directory %q, got %q", dir, got)
+	}
+	if !strings.Contains(got, "Total memories: 1") {
+		t.Errorf("expected total memories count, got %q", got)
+	}
+	if strings.Contains(got, "uninitialized") {
+		t.Errorf("expected active status, got uninitialized output: %q", got)
+	}
+}
+
 func TestHandleStatusReadDirError(t *testing.T) {
 	if os.Getenv("EXIT_TEST") == "1" {
 		jsonOutput = true

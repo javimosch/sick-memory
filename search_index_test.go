@@ -555,6 +555,34 @@ func TestBuildSearchIndexSkipsReadFileError(t *testing.T) {
 	}
 }
 
+func TestBuildSearchIndexIgnoresHiddenFiles(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", "golang content")
+
+	if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte("ignored"), 0644); err != nil {
+		t.Fatalf("failed to write hidden file: %v", err)
+	}
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 1 {
+		t.Errorf("DocCount = %d, want 1", index.DocCount)
+	}
+	if _, ok := index.Memories["memory_1"]; !ok {
+		t.Errorf("expected memory_1 to be indexed, got %v", index.Memories)
+	}
+	if _, ok := index.Memories[".gitignore"]; ok {
+		t.Errorf("did not expect hidden .gitignore to be indexed")
+	}
+}
+
 func TestBuildSearchIndexPopulatesCreated(t *testing.T) {
 	dir := t.TempDir()
 
