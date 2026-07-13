@@ -635,3 +635,60 @@ func TestMainRememberMemoryDirTextOutput(t *testing.T) {
 		t.Errorf("expected 1 memory file, got %d", len(files))
 	}
 }
+
+func TestKeepMainMemoryDir(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "keep", "--json", "--memory-dir", dir, "keep main memory dir test"}
+	jsonOutput = false
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	if data["status"] != "remembered" {
+		t.Errorf("status = %v, want %q", data["status"], "remembered")
+	}
+	id, ok := data["id"].(string)
+	if !ok || id == "" {
+		t.Fatalf("expected non-empty id, got %v", data["id"])
+	}
+	if _, err := os.ReadFile(filepath.Join(dir, "memory_"+id+".md")); err != nil {
+		t.Errorf("expected memory file to exist: %v", err)
+	}
+}
