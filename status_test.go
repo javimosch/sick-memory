@@ -695,3 +695,36 @@ func TestStatusMainMemoryDirUninitializedJSON(t *testing.T) {
 		t.Errorf("did not expect path in uninitialized response")
 	}
 }
+
+func TestMainStatusActiveMemoryDirTextOutput(t *testing.T) {
+	if os.Getenv("MAIN_STATUS_ACTIVE_MEMORY_DIR_TEXT") == "1" {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "memory_1.md"), []byte("content"), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to write memory file: %v\n", err)
+			os.Exit(1)
+		}
+		os.Args = []string{"sick-memory", "status", "--memory-dir", dir}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainStatusActiveMemoryDirTextOutput$")
+	cmd.Dir = t.TempDir()
+	cmd.Env = append(os.Environ(), "MAIN_STATUS_ACTIVE_MEMORY_DIR_TEXT=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("TestMainStatusActiveMemoryDirTextOutput subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory system status: active") {
+		t.Errorf("expected active status, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Memory directory: ") {
+		t.Errorf("expected memory directory line, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Total memories: 1") {
+		t.Errorf("expected total memories count, got:\n%s", got)
+	}
+}
