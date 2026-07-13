@@ -639,3 +639,92 @@ func TestStatusMainMemoryDirUninitialized(t *testing.T) {
 		t.Errorf("expected init hint, got:\n%s", got)
 	}
 }
+
+func TestStatusMainMemoryDirUninitializedJSON(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "status", "--json", "--memory-dir", filepath.Join(dir, "does-not-exist")}
+	jsonOutput = false
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	if data["status"] != "uninitialized" {
+		t.Errorf("expected status 'uninitialized', got %v", data["status"])
+	}
+	if _, ok := data["count"]; ok {
+		t.Errorf("did not expect count in uninitialized response")
+	}
+	if _, ok := data["path"]; ok {
+		t.Errorf("did not expect path in uninitialized response")
+	}
+}
+
+func TestMainStatusActiveMemoryDirTextOutput(t *testing.T) {
+	if os.Getenv("MAIN_STATUS_ACTIVE_MEMORY_DIR_TEXT") == "1" {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "memory_1.md"), []byte("content"), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to write memory file: %v\n", err)
+			os.Exit(1)
+		}
+		os.Args = []string{"sick-memory", "status", "--memory-dir", dir}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainStatusActiveMemoryDirTextOutput$")
+	cmd.Dir = t.TempDir()
+	cmd.Env = append(os.Environ(), "MAIN_STATUS_ACTIVE_MEMORY_DIR_TEXT=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("TestMainStatusActiveMemoryDirTextOutput subprocess failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory system status: active") {
+		t.Errorf("expected active status, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Memory directory: ") {
+		t.Errorf("expected memory directory line, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Total memories: 1") {
+		t.Errorf("expected total memories count, got:\n%s", got)
+	}
+}
