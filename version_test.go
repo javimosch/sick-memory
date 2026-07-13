@@ -39,7 +39,7 @@ func TestMainVersion(t *testing.T) {
 	}
 
 	home := t.TempDir()
-	cmd := exec.Command(os.Args[0], "-test.run=TestMainVersion", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainVersion$", "-test.v")
 	cmd.Env = append(os.Environ(), "MAIN_VERSION=1", "HOME="+home)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -166,5 +166,25 @@ func TestShortVersionMain(t *testing.T) {
 	want := "sick-memory version " + Version + "\n"
 	if got := string(out); got != want {
 		t.Errorf("main() output = %q, want %q", got, want)
+	}
+}
+
+func TestMainVersionMemoryDir(t *testing.T) {
+	if os.Getenv("MAIN_VERSION_MEMDIR") == "1" {
+		os.Args = []string{"sick-memory", "version", "--memory-dir", t.TempDir()}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainVersionMemoryDir$", "-test.v")
+	cmd.Env = append(os.Environ(), "MAIN_VERSION_MEMDIR=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("TestMainVersionMemoryDir subprocess failed: %v\n%s", err, out)
+	}
+
+	if !strings.Contains(string(out), "sick-memory version "+Version) {
+		t.Errorf("expected version output, got:\n%s", out)
 	}
 }
