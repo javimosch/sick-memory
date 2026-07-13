@@ -90,7 +90,7 @@ func TestMainHelp(t *testing.T) {
 	}
 
 	home := t.TempDir()
-	cmd := exec.Command(os.Args[0], "-test.run=TestMainHelp", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainHelp$", "-test.v")
 	cmd.Env = append(os.Environ(), "MAIN_HELP=1", "HOME="+home)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -184,6 +184,26 @@ func TestMainShortHelp(t *testing.T) {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("TestMainShortHelp subprocess failed: %v\n%s", err, out)
+	}
+
+	if !strings.Contains(string(out), "sick-memory - File-based memory system for AI coding agents") {
+		t.Errorf("expected help output, got:\n%s", out)
+	}
+}
+
+func TestMainHelpMemoryDir(t *testing.T) {
+	if os.Getenv("MAIN_HELP_MEMDIR") == "1" {
+		os.Args = []string{"sick-memory", "help", "--memory-dir", t.TempDir()}
+		main()
+		return
+	}
+
+	home := t.TempDir()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainHelpMemoryDir$", "-test.v")
+	cmd.Env = append(os.Environ(), "MAIN_HELP_MEMDIR=1", "HOME="+home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("TestMainHelpMemoryDir subprocess failed: %v\n%s", err, out)
 	}
 
 	if !strings.Contains(string(out), "sick-memory - File-based memory system for AI coding agents") {
