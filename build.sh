@@ -87,6 +87,14 @@ OPT_MEMORY_ID=$(./sick-memory-optimized remember "Smoke test optimized" --memory
 ./sick-memory-optimized delete "$OPT_MEMORY_ID" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized status --memory-dir "$OPT_SMOKE_DIR"
 
+# Smoke test JSON output with the optimized binary
+./sick-memory-optimized list --json --memory-dir "$OPT_SMOKE_DIR"
+./sick-memory-optimized status --json --memory-dir "$OPT_SMOKE_DIR"
+./sick-memory-optimized config --json --memory-dir "$OPT_SMOKE_DIR"
+OPT_JSON_MEMORY_ID=$(./sick-memory-optimized remember "JSON optimized smoke memory" --json --memory-dir "$OPT_SMOKE_DIR" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+./sick-memory-optimized recall "JSON optimized" --json --memory-dir "$OPT_SMOKE_DIR"
+./sick-memory-optimized delete "$OPT_JSON_MEMORY_ID" --json --memory-dir "$OPT_SMOKE_DIR"
+
 # Smoke test the config command with the optimized binary
 mkdir -p "$OPT_SMOKE_DIR/home"
 HOME="$OPT_SMOKE_DIR/home" ./sick-memory-optimized config --memory-dir "$OPT_SMOKE_DIR"
