@@ -74,6 +74,14 @@ HOME="$SMOKE_DIR/home" ./sick-memory config --memory-dir "$SMOKE_DIR"
   [ -f .opencode/memory.json ]
   "$REPO_ROOT/sick-memory" bridge copilot --memory-dir "$SMOKE_DIR"
   [ -f .copilot/settings.json ]
+
+  # Smoke test bridge JSON output
+  mkdir -p json
+  cd json
+  output=$("$REPO_ROOT/sick-memory" bridge claude-code --json --memory-dir "$SMOKE_DIR")
+  echo "$output" | grep -q '"status":"bridge_created"'
+  echo "$output" | grep -q '"agent":"claude-code"'
+  [ -f .claude/CLAUDE.md ]
 )
 
 # Build sick-memory CLI - Optimized (size + performance)
@@ -126,4 +134,12 @@ HOME="$OPT_SMOKE_DIR/home" ./sick-memory-optimized config --memory-dir "$OPT_SMO
   [ -f .opencode/memory.json ]
   "$REPO_ROOT/sick-memory-optimized" bridge copilot --memory-dir "$OPT_SMOKE_DIR"
   [ -f .copilot/settings.json ]
+
+  # Smoke test bridge JSON output with the optimized binary
+  mkdir -p json
+  cd json
+  output=$("$REPO_ROOT/sick-memory-optimized" bridge claude-code --json --memory-dir "$OPT_SMOKE_DIR")
+  echo "$output" | grep -q '"status":"bridge_created"'
+  echo "$output" | grep -q '"agent":"claude-code"'
+  [ -f .claude/CLAUDE.md ]
 )
