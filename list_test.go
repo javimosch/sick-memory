@@ -221,7 +221,7 @@ func TestHandleListMissingDirectoryJSON(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleListMissingDirectoryJSON", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleListMissingDirectoryJSON$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -241,7 +241,7 @@ func TestHandleListMissingDirectoryText(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleListMissingDirectoryText", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleListMissingDirectoryText$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -262,7 +262,7 @@ func TestMainListMissingDirectory(t *testing.T) {
 	}
 
 	home := t.TempDir()
-	cmd := exec.Command(os.Args[0], "-test.run=TestMainListMissingDirectory", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainListMissingDirectory$", "-test.v")
 	cmd.Env = append(os.Environ(), "MAIN_LIST_MISSING=1", "HOME="+home)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
