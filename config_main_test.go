@@ -536,3 +536,82 @@ func TestConfigMainMemoryDirOverridesGitRepoTextOutput(t *testing.T) {
 		}
 	}
 }
+
+func TestConfigMainJSONWithGlobalConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	if err := os.MkdirAll(filepath.Join(home, ".sick-memory"), 0755); err != nil {
+		t.Fatalf("failed to create global dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(home, ".sick-memory", "config.json"), []byte(`{
+  "default_memory_type": "project",
+  "max_memory_size": 4096,
+  "auto_index": false
+}`), 0644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	dir := t.TempDir()
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(oldWd)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("failed to change working directory: %v", err)
+	}
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "config", "--json"}
+	jsonOutput = true
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	globalConfig, ok := data["global_config"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected global_config object, got %T", data["global_config"])
+	}
+	if globalConfig["default_memory_type"] != "project" {
+		t.Errorf("expected default_memory_type 'project', got %v", globalConfig["default_memory_type"])
+	}
+	if max, ok := globalConfig["max_memory_size"].(float64); !ok || max != 4096 {
+		t.Errorf("expected max_memory_size 4096, got %v", globalConfig["max_memory_size"])
+	}
+	if globalConfig["auto_index"] != false {
+		t.Errorf("expected auto_index false, got %v", globalConfig["auto_index"])
+	}
+}

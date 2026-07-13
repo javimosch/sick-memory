@@ -448,7 +448,7 @@ func TestHandleBridgeMissingArgs(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleBridgeMissingArgs", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleBridgeMissingArgs$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -468,7 +468,7 @@ func TestHandleBridgeUnknownAgent(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleBridgeUnknownAgent", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleBridgeUnknownAgent$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -494,7 +494,7 @@ func TestGenerateClaudeCodeBridgeWriteError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestGenerateClaudeCodeBridgeWriteError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestGenerateClaudeCodeBridgeWriteError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -520,7 +520,7 @@ func TestGenerateClaudeCodeBridgeMkdirError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestGenerateClaudeCodeBridgeMkdirError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestGenerateClaudeCodeBridgeMkdirError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -546,7 +546,7 @@ func TestGenerateOpenCodeBridgeMkdirError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestGenerateOpenCodeBridgeMkdirError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestGenerateOpenCodeBridgeMkdirError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -572,7 +572,7 @@ func TestGenerateOpenCodeBridgeWriteError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestGenerateOpenCodeBridgeWriteError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestGenerateOpenCodeBridgeWriteError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -598,7 +598,7 @@ func TestGenerateCopilotBridgeWriteError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestGenerateCopilotBridgeWriteError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestGenerateCopilotBridgeWriteError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -624,7 +624,7 @@ func TestGenerateCopilotBridgeMkdirError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestGenerateCopilotBridgeMkdirError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestGenerateCopilotBridgeMkdirError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -645,7 +645,7 @@ func TestMainBridgeMissingArgs(t *testing.T) {
 	}
 
 	home := t.TempDir()
-	cmd := exec.Command(os.Args[0], "-test.run=TestMainBridgeMissingArgs", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainBridgeMissingArgs$", "-test.v")
 	cmd.Env = append(os.Environ(), "MAIN_BRIDGE_MISSING=1", "HOME="+home)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
