@@ -18,8 +18,9 @@ go vet ./...
 SMOKE_DIR=$(mktemp -d)
 OPT_SMOKE_DIR=$(mktemp -d)
 BRIDGE_DIR=$(mktemp -d)
+OPT_BRIDGE_DIR=$(mktemp -d)
 JSON_SMOKE_DIR=$(mktemp -d)
-trap 'rm -rf "$SMOKE_DIR" "$OPT_SMOKE_DIR" "$BRIDGE_DIR" "$JSON_SMOKE_DIR"' EXIT
+trap 'rm -rf "$SMOKE_DIR" "$OPT_SMOKE_DIR" "$BRIDGE_DIR" "$OPT_BRIDGE_DIR" "$JSON_SMOKE_DIR"' EXIT
 
 # Build sick-memory CLI - Default
 echo "Building sick-memory default..."
@@ -89,3 +90,14 @@ OPT_MEMORY_ID=$(./sick-memory-optimized remember "Smoke test optimized" --memory
 # Smoke test the config command with the optimized binary
 mkdir -p "$OPT_SMOKE_DIR/home"
 HOME="$OPT_SMOKE_DIR/home" ./sick-memory-optimized config --memory-dir "$OPT_SMOKE_DIR"
+
+# Smoke test the bridge command with the optimized binary in an isolated directory
+(
+  cd "$OPT_BRIDGE_DIR"
+  "$REPO_ROOT/sick-memory-optimized" bridge claude-code --memory-dir "$OPT_SMOKE_DIR"
+  [ -f .claude/CLAUDE.md ]
+  "$REPO_ROOT/sick-memory-optimized" bridge opencode --memory-dir "$OPT_SMOKE_DIR"
+  [ -f .opencode/memory.json ]
+  "$REPO_ROOT/sick-memory-optimized" bridge copilot --memory-dir "$OPT_SMOKE_DIR"
+  [ -f .copilot/settings.json ]
+)
