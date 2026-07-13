@@ -1135,3 +1135,35 @@ func TestParseMemoryEmptyFilename(t *testing.T) {
 		t.Errorf("ID = %q, want empty", memory.ID)
 	}
 }
+
+func TestBuildSearchIndexMemoryFileWithInvalidDate(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: project
+created: not-a-date
+---
+
+Write tests in golang
+`)
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	if index.DocCount != 1 {
+		t.Errorf("DocCount = %d, want 1", index.DocCount)
+	}
+	if _, ok := index.Memories["memory_1"]; !ok {
+		t.Errorf("expected memory_1 to be indexed, got %v", index.Memories)
+	}
+	if !index.Memories["memory_1"].Created.IsZero() {
+		t.Errorf("Created = %v, want zero time for invalid date", index.Memories["memory_1"].Created)
+	}
+}
