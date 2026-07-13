@@ -290,3 +290,74 @@ func TestInitMainTextOutput(t *testing.T) {
 		t.Errorf("expected MEMORY.md index file: %v", err)
 	}
 }
+
+func TestInitMainGitRepo(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	if err := exec.Command("git", "-C", dir, "init", "-q").Run(); err != nil {
+		t.Fatalf("failed to init git repo: %v", err)
+	}
+
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(oldWd)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("failed to change working directory: %v", err)
+	}
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "init", "--json"}
+	jsonOutput = true
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	if data["status"] != "initialized" {
+		t.Errorf("status = %v, want %q", data["status"], "initialized")
+	}
+
+	wantMemoryDir := filepath.Join(home, ".sick-memory", "projects", sanitizePath(dir), "memory")
+	if data["path"] != wantMemoryDir {
+		t.Errorf("path = %v, want %q", data["path"], wantMemoryDir)
+	}
+
+	if _, err := os.Stat(filepath.Join(wantMemoryDir, "MEMORY.md")); err != nil {
+		t.Errorf("expected MEMORY.md index file: %v", err)
+	}
+}
