@@ -599,3 +599,59 @@ func TestListMainMemoryDirTextOutput(t *testing.T) {
 		t.Errorf("expected total memories count, got:\n%s", got)
 	}
 }
+
+func TestLsMainMemoryDir(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "memory_1.md"), []byte("content"), 0644); err != nil {
+		t.Fatalf("failed to write memory file: %v", err)
+	}
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "ls", "--json", "--memory-dir", dir}
+	jsonOutput = false
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	ids, ok := resp.Data.([]interface{})
+	if !ok {
+		t.Fatalf("expected []interface{}, got %T", resp.Data)
+	}
+	if len(ids) != 1 {
+		t.Fatalf("expected 1 memory ID, got %d", len(ids))
+	}
+	if ids[0] != "memory_1.md" {
+		t.Errorf("expected memory_1.md, got %v", ids[0])
+	}
+}
