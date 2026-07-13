@@ -20,7 +20,9 @@ OPT_SMOKE_DIR=$(mktemp -d)
 BRIDGE_DIR=$(mktemp -d)
 OPT_BRIDGE_DIR=$(mktemp -d)
 JSON_SMOKE_DIR=$(mktemp -d)
-trap 'rm -rf "$SMOKE_DIR" "$OPT_SMOKE_DIR" "$BRIDGE_DIR" "$OPT_BRIDGE_DIR" "$JSON_SMOKE_DIR"' EXIT
+STATUS_UNINIT_DIR=$(mktemp -d)
+OPT_STATUS_UNINIT_DIR=$(mktemp -d)
+trap 'rm -rf "$SMOKE_DIR" "$OPT_SMOKE_DIR" "$BRIDGE_DIR" "$OPT_BRIDGE_DIR" "$JSON_SMOKE_DIR" "$STATUS_UNINIT_DIR" "$OPT_STATUS_UNINIT_DIR"' EXIT
 
 # Build sick-memory CLI - Default
 echo "Building sick-memory default..."
@@ -45,6 +47,10 @@ MEMORY_ID=$(./sick-memory remember "Smoke test memory" --memory-dir "$SMOKE_DIR"
 ./sick-memory search "Edited smoke test" --memory-dir "$SMOKE_DIR"
 ./sick-memory delete "$MEMORY_ID" --memory-dir "$SMOKE_DIR"
 ./sick-memory status --memory-dir "$SMOKE_DIR"
+
+# Smoke test JSON status output for an uninitialized memory directory
+STATUS_OUTPUT=$(./sick-memory status --json --memory-dir "$STATUS_UNINIT_DIR/missing")
+echo "$STATUS_OUTPUT" | grep -q '"status":"uninitialized"'
 
 # Smoke test command aliases in the default binary
 MEMORY_ID=$(./sick-memory keep "Alias smoke memory" --memory-dir "$SMOKE_DIR" | awk '{print $NF}')
@@ -109,6 +115,10 @@ OPT_MEMORY_ID=$(./sick-memory-optimized remember "Smoke test optimized" --memory
 ./sick-memory-optimized search "Edited smoke test" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized delete "$OPT_MEMORY_ID" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized status --memory-dir "$OPT_SMOKE_DIR"
+
+# Smoke test JSON status output for an uninitialized memory directory
+OPT_STATUS_OUTPUT=$(./sick-memory-optimized status --json --memory-dir "$OPT_STATUS_UNINIT_DIR/missing")
+echo "$OPT_STATUS_OUTPUT" | grep -q '"status":"uninitialized"'
 
 # Smoke test command aliases in the optimized binary
 OPT_MEMORY_ID=$(./sick-memory-optimized keep "Alias smoke optimized" --memory-dir "$OPT_SMOKE_DIR" | awk '{print $NF}')
