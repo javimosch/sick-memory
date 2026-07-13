@@ -329,3 +329,34 @@ func TestSuccessResponseWithString(t *testing.T) {
 		t.Errorf("data = %v, want ok", data)
 	}
 }
+
+func TestSuccessResponseWithBoolean(t *testing.T) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+
+	old := os.Stdout
+	os.Stdout = w
+	successResponse(true)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(bool)
+	if !ok {
+		t.Fatalf("expected bool, got %T", resp.Data)
+	}
+	if !data {
+		t.Errorf("data = %v, want true", data)
+	}
+}

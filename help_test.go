@@ -110,7 +110,7 @@ func TestMainNoArgs(t *testing.T) {
 	}
 
 	home := t.TempDir()
-	cmd := exec.Command(os.Args[0], "-test.run=TestMainNoArgs", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainNoArgs$", "-test.v")
 	cmd.Env = append(os.Environ(), "MAIN_NO_ARGS=1", "HOME="+home)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
@@ -133,7 +133,7 @@ func TestMainUnknownCommand(t *testing.T) {
 	}
 
 	home := t.TempDir()
-	cmd := exec.Command(os.Args[0], "-test.run=TestMainUnknownCommand", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainUnknownCommand$", "-test.v")
 	cmd.Env = append(os.Environ(), "MAIN_UNKNOWN=1", "HOME="+home)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
@@ -159,7 +159,7 @@ func TestMainLongHelp(t *testing.T) {
 	}
 
 	home := t.TempDir()
-	cmd := exec.Command(os.Args[0], "-test.run=TestMainLongHelp", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainLongHelp$", "-test.v")
 	cmd.Env = append(os.Environ(), "MAIN_LONG_HELP=1", "HOME="+home)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
