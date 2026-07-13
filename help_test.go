@@ -239,3 +239,61 @@ func TestHelpMain(t *testing.T) {
 		t.Errorf("main() output missing USAGE, got:\n%s", got)
 	}
 }
+
+func TestLongHelpMain(t *testing.T) {
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+	os.Args = []string{"sick-memory", "--help"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "sick-memory - File-based memory system for AI coding agents") {
+		t.Errorf("main() output missing help banner, got:\n%s", got)
+	}
+	if !strings.Contains(got, "USAGE:") {
+		t.Errorf("main() output missing USAGE, got:\n%s", got)
+	}
+}
+
+func TestShortHelpMain(t *testing.T) {
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+	os.Args = []string{"sick-memory", "-h"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "sick-memory - File-based memory system for AI coding agents") {
+		t.Errorf("main() output missing help banner, got:\n%s", got)
+	}
+	if !strings.Contains(got, "USAGE:") {
+		t.Errorf("main() output missing USAGE, got:\n%s", got)
+	}
+}
