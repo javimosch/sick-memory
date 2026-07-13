@@ -1062,3 +1062,76 @@ rust programming
 		t.Errorf("expected memory_1, got %s", results[0].MemoryID)
 	}
 }
+
+func TestParseMemoryDirect(t *testing.T) {
+	created := "2026-07-11T12:00:00Z"
+	content := `---
+name: Memory One
+description: golang testing
+type: project
+created: ` + created + `
+---
+
+Write tests in golang
+`
+	memory := parseMemory(content, "memory_1.md")
+
+	if memory.ID != "memory_1" {
+		t.Errorf("ID = %q, want %q", memory.ID, "memory_1")
+	}
+	if memory.Name != "Memory One" {
+		t.Errorf("Name = %q, want %q", memory.Name, "Memory One")
+	}
+	if memory.Description != "golang testing" {
+		t.Errorf("Description = %q, want %q", memory.Description, "golang testing")
+	}
+	if memory.Type != "project" {
+		t.Errorf("Type = %q, want %q", memory.Type, "project")
+	}
+	if !memory.Created.Equal(time.Date(2026, 7, 11, 12, 0, 0, 0, time.UTC)) {
+		t.Errorf("Created = %v, want %v", memory.Created, time.Date(2026, 7, 11, 12, 0, 0, 0, time.UTC))
+	}
+	wantContent := "\nWrite tests in golang\n"
+	if memory.Content != wantContent {
+		t.Errorf("Content = %q, want %q", memory.Content, wantContent)
+	}
+}
+
+func TestParseMemoryWithoutFrontmatter(t *testing.T) {
+	memory := parseMemory("plain golang content", "memory_1.md")
+
+	if memory.ID != "memory_1" {
+		t.Errorf("ID = %q, want %q", memory.ID, "memory_1")
+	}
+	if memory.Content != "plain golang content" {
+		t.Errorf("Content = %q, want %q", memory.Content, "plain golang content")
+	}
+}
+
+func TestParseMemoryInvalidDate(t *testing.T) {
+	content := `---
+name: Memory One
+description: golang testing
+type: project
+created: not-a-date
+---
+
+Write tests in golang
+`
+	memory := parseMemory(content, "memory_1.md")
+
+	if memory.ID != "memory_1" {
+		t.Errorf("ID = %q, want %q", memory.ID, "memory_1")
+	}
+	if !memory.Created.IsZero() {
+		t.Errorf("Created = %v, want zero time", memory.Created)
+	}
+}
+
+func TestParseMemoryEmptyFilename(t *testing.T) {
+	memory := parseMemory("plain content", ".md")
+
+	if memory.ID != "" {
+		t.Errorf("ID = %q, want empty", memory.ID)
+	}
+}
