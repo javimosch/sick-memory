@@ -30,6 +30,9 @@ ls -lh sick-memory
 # Smoke test the freshly built binary
 echo "Smoke testing sick-memory default binary..."
 ./sick-memory --version
+./sick-memory -v
+./sick-memory --help
+./sick-memory -h
 ./sick-memory help
 
 echo "Smoke testing core commands with temporary memory dir..."
@@ -41,6 +44,11 @@ MEMORY_ID=$(./sick-memory remember "Smoke test memory" --memory-dir "$SMOKE_DIR"
 ./sick-memory search "Edited smoke test" --memory-dir "$SMOKE_DIR"
 ./sick-memory delete "$MEMORY_ID" --memory-dir "$SMOKE_DIR"
 ./sick-memory status --memory-dir "$SMOKE_DIR"
+
+# Smoke test command aliases in the default binary
+MEMORY_ID=$(./sick-memory keep "Alias smoke memory" --memory-dir "$SMOKE_DIR" | awk '{print $NF}')
+./sick-memory ls --memory-dir "$SMOKE_DIR"
+./sick-memory delete "$MEMORY_ID" --memory-dir "$SMOKE_DIR"
 
 # Smoke test JSON output for a subset of commands
 ./sick-memory init --memory-dir "$JSON_SMOKE_DIR"
@@ -75,6 +83,9 @@ ls -lh sick-memory-optimized
 # Smoke test the optimized binary too
 echo "Smoke testing sick-memory optimized binary..."
 ./sick-memory-optimized --version
+./sick-memory-optimized -v
+./sick-memory-optimized --help
+./sick-memory-optimized -h
 ./sick-memory-optimized help
 
 echo "Smoke testing core commands with optimized binary..."
@@ -86,6 +97,11 @@ OPT_MEMORY_ID=$(./sick-memory-optimized remember "Smoke test optimized" --memory
 ./sick-memory-optimized search "Edited smoke test" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized delete "$OPT_MEMORY_ID" --memory-dir "$OPT_SMOKE_DIR"
 ./sick-memory-optimized status --memory-dir "$OPT_SMOKE_DIR"
+
+# Smoke test command aliases in the optimized binary
+OPT_MEMORY_ID=$(./sick-memory-optimized keep "Alias smoke optimized" --memory-dir "$OPT_SMOKE_DIR" | awk '{print $NF}')
+./sick-memory-optimized ls --memory-dir "$OPT_SMOKE_DIR"
+./sick-memory-optimized delete "$OPT_MEMORY_ID" --memory-dir "$OPT_SMOKE_DIR"
 
 # Smoke test JSON output with the optimized binary
 ./sick-memory-optimized list --json --memory-dir "$OPT_SMOKE_DIR"
