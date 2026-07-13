@@ -639,3 +639,59 @@ func TestStatusMainMemoryDirUninitialized(t *testing.T) {
 		t.Errorf("expected init hint, got:\n%s", got)
 	}
 }
+
+func TestStatusMainMemoryDirUninitializedJSON(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "status", "--json", "--memory-dir", filepath.Join(dir, "does-not-exist")}
+	jsonOutput = false
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	if data["status"] != "uninitialized" {
+		t.Errorf("expected status 'uninitialized', got %v", data["status"])
+	}
+	if _, ok := data["count"]; ok {
+		t.Errorf("did not expect count in uninitialized response")
+	}
+	if _, ok := data["path"]; ok {
+		t.Errorf("did not expect path in uninitialized response")
+	}
+}
