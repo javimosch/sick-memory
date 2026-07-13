@@ -1167,3 +1167,77 @@ Write tests in golang
 		t.Errorf("Created = %v, want zero time for invalid date", index.Memories["memory_1"].Created)
 	}
 }
+
+func TestSearchMemoriesPartialKeyword(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: project
+created: 2026-07-11T12:00:00Z
+---
+
+golang testing project
+`)
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	results := searchMemories(index, "test")
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].MemoryID != "memory_1" {
+		t.Errorf("expected memory_1, got %s", results[0].MemoryID)
+	}
+}
+
+func TestSearchMemoriesPunctuationInQuery(t *testing.T) {
+	dir := t.TempDir()
+
+	writeMemoryFile(t, dir, "memory_1.md", `---
+name: Memory One
+description: golang testing
+type: project
+created: 2026-07-11T12:00:00Z
+---
+
+golang testing project
+`)
+
+	writeMemoryFile(t, dir, "memory_2.md", `---
+name: Memory Two
+description: golang project
+type: user
+created: 2026-07-11T10:00:00Z
+---
+
+rust programming
+`)
+
+	index, err := buildSearchIndex(dir)
+	if err != nil {
+		t.Fatalf("buildSearchIndex failed: %v", err)
+	}
+	if index == nil {
+		t.Fatal("expected index, got nil")
+	}
+
+	results := searchMemories(index, "Golang, testing!")
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	ids := map[string]bool{}
+	for _, r := range results {
+		ids[r.MemoryID] = true
+	}
+	if !ids["memory_1"] || !ids["memory_2"] {
+		t.Errorf("expected both memory_1 and memory_2 in results, got %v", results)
+	}
+}
