@@ -236,3 +236,96 @@ func TestMainErrorResponse(t *testing.T) {
 		t.Errorf("expected error response output, got:\n%s", out)
 	}
 }
+
+func TestSuccessResponseWithArray(t *testing.T) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+
+	old := os.Stdout
+	os.Stdout = w
+	successResponse([]string{"one", "two"})
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.([]interface{})
+	if !ok {
+		t.Fatalf("expected []interface{}, got %T", resp.Data)
+	}
+	if len(data) != 2 {
+		t.Errorf("expected 2 items, got %d", len(data))
+	}
+}
+
+func TestSuccessResponseWithNumber(t *testing.T) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+
+	old := os.Stdout
+	os.Stdout = w
+	successResponse(42)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(float64)
+	if !ok {
+		t.Fatalf("expected float64, got %T", resp.Data)
+	}
+	if data != 42 {
+		t.Errorf("data = %v, want 42", data)
+	}
+}
+
+func TestSuccessResponseWithString(t *testing.T) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+
+	old := os.Stdout
+	os.Stdout = w
+	successResponse("ok")
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(string)
+	if !ok {
+		t.Fatalf("expected string, got %T", resp.Data)
+	}
+	if data != "ok" {
+		t.Errorf("data = %v, want ok", data)
+	}
+}
