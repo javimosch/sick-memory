@@ -594,3 +594,48 @@ func TestMainStatusActiveMemoryDirJSON(t *testing.T) {
 		t.Errorf("expected version 1.0 in output, got:\n%s", got)
 	}
 }
+
+func TestStatusMainMemoryDirUninitialized(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := t.TempDir()
+
+	oldArgs := os.Args
+	oldJSON := jsonOutput
+	oldMemoryDir := memoryDir
+	oldNoInteractive := noInteractive
+	defer func() {
+		os.Args = oldArgs
+		jsonOutput = oldJSON
+		memoryDir = oldMemoryDir
+		noInteractive = oldNoInteractive
+	}()
+	os.Args = []string{"sick-memory", "status", "--memory-dir", filepath.Join(dir, "does-not-exist")}
+	jsonOutput = false
+	memoryDir = ""
+	noInteractive = false
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	main()
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory system status: uninitialized") {
+		t.Errorf("expected uninitialized status, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Run 'sick-memory init' to initialize.") {
+		t.Errorf("expected init hint, got:\n%s", got)
+	}
+}
