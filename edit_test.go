@@ -479,3 +479,66 @@ Original content
 		t.Errorf("did not expect --json flag to be written as memory content, got:\n%s", string(updated))
 	}
 }
+
+func TestHandleEditSkipsMemoryDirFlag(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = true
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir}
+
+	writeMemoryFile(t, dir, "memory_123.md", `---
+name: Memory 123
+description: original content
+type: user
+created: 2026-07-11T12:00:00Z
+---
+
+Original content
+`)
+
+	os.Args = []string{"cmd", "edit", "123", "--memory-dir", "/tmp/ignored", "updated content"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleEdit(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	if data["id"] != "123" {
+		t.Errorf("id = %v, want %q", data["id"], "123")
+	}
+
+	updated, err := os.ReadFile(filepath.Join(dir, "memory_123.md"))
+	if err != nil {
+		t.Fatalf("failed to read updated memory file: %v", err)
+	}
+	if strings.Contains(string(updated), "--memory-dir") {
+		t.Errorf("did not expect --memory-dir flag to be written as memory content, got:\n%s", string(updated))
+	}
+	if !strings.Contains(string(updated), "updated content") {
+		t.Errorf("expected updated content in file, got:\n%s", string(updated))
+	}
+}
