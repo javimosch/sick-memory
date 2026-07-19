@@ -193,3 +193,26 @@ func TestCargoCategories(t *testing.T) {
 	}
 	t.Error("categories field not found in Cargo.toml")
 }
+
+func TestCargoExcludesNoDuplicates(t *testing.T) {
+	data, err := os.ReadFile("Cargo.toml")
+	if err != nil {
+		t.Fatalf("failed to read Cargo.toml: %v", err)
+	}
+	content := string(data)
+
+	re := regexp.MustCompile(`exclude\s*=\s*\[([\s\S]*?)\]`)
+	matches := re.FindStringSubmatch(content)
+	if matches == nil {
+		t.Fatal("exclude field not found in Cargo.toml")
+	}
+
+	vals := regexp.MustCompile(`"([^"]+)"`).FindAllStringSubmatch(matches[1], -1)
+	seen := make(map[string]bool, len(vals))
+	for _, v := range vals {
+		if seen[v[1]] {
+			t.Errorf("duplicate exclude entry %q in Cargo.toml", v[1])
+		}
+		seen[v[1]] = true
+	}
+}
