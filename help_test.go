@@ -75,6 +75,10 @@ func TestPrintHelpContainsAllCommandsAndOptions(t *testing.T) {
 		"--help, -h",
 		"--version, -v",
 		"0        Success",
+		"1        Generic failure",
+		"80-89    Input/validation errors",
+		"90-99    Resource/state errors",
+		"100-109  Integration/external errors",
 		"110-119  Internal software errors",
 	}
 	for _, w := range want {
