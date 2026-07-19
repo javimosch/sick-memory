@@ -263,7 +263,7 @@ func TestHandleEditMissingArgument(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleEditMissingArgument", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleEditMissingArgument$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -288,7 +288,7 @@ func TestHandleEditReadFileError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleEditReadFileError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleEditReadFileError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -310,7 +310,7 @@ func TestHandleEditMemoryNotFound(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleEditMemoryNotFound", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleEditMemoryNotFound$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -332,7 +332,7 @@ func TestHandleEditReadDirError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleEditReadDirError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleEditReadDirError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -361,7 +361,7 @@ func TestHandleEditWriteError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleEditWriteError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleEditWriteError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
