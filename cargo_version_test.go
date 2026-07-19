@@ -59,13 +59,13 @@ func TestCargoMetadata(t *testing.T) {
 	content := string(data)
 
 	checks := map[string]string{
-		`^name\s*=\s*"([^"]+)"`:            "sick-memory",
-		`^license\s*=\s*"([^"]+)"`:          "MIT",
-		`^readme\s*=\s*"([^"]+)"`:          "README.md",
-		`^rust-version\s*=\s*"([^"]+)"`:    "1.56",
-		`^homepage\s*=\s*"([^"]+)"`:       "https://github.com/javimosch/sick-memory",
-		`^repository\s*=\s*"([^"]+)"`:       "https://github.com/javimosch/sick-memory",
-		`^description\s*=\s*"([^"]+)"`:      "File-based memory system for AI coding agents",
+		`^name\s*=\s*"([^"]+)"`:         "sick-memory",
+		`^license\s*=\s*"([^"]+)"`:      "MIT",
+		`^readme\s*=\s*"([^"]+)"`:       "README.md",
+		`^rust-version\s*=\s*"([^"]+)"`: "1.56",
+		`^homepage\s*=\s*"([^"]+)"`:     "https://github.com/javimosch/sick-memory",
+		`^repository\s*=\s*"([^"]+)"`:   "https://github.com/javimosch/sick-memory",
+		`^description\s*=\s*"([^"]+)"`:  "File-based memory system for AI coding agents",
 	}
 
 	for pattern, want := range checks {
