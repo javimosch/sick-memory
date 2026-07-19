@@ -330,3 +330,29 @@ func TestShortHelpMain(t *testing.T) {
 		t.Errorf("main() output missing USAGE, got:\n%s", got)
 	}
 }
+
+func TestPrintHelpListsCommandAliases(t *testing.T) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+
+	old := os.Stdout
+	os.Stdout = w
+	printHelp()
+	w.Close()
+	os.Stdout = old
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	want := []string{"alias: keep", "alias: search", "alias: ls"}
+	for _, w := range want {
+		if !strings.Contains(got, w) {
+			t.Errorf("help output missing %q, got:\n%s", w, got)
+		}
+	}
+}
