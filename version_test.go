@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -186,5 +187,18 @@ func TestMainVersionMemoryDir(t *testing.T) {
 
 	if !strings.Contains(string(out), "sick-memory version "+Version) {
 		t.Errorf("expected version output, got:\n%s", out)
+	}
+}
+
+func TestVersionIsNotEmpty(t *testing.T) {
+	if Version == "" {
+		t.Error("Version is empty")
+	}
+}
+
+func TestVersionIsSemver(t *testing.T) {
+	re := regexp.MustCompile(`^\d+\.\d+\.\d+(-[A-Za-z0-9.-]+)?(\+[A-Za-z0-9.-]+)?$`)
+	if !re.MatchString(Version) {
+		t.Errorf("Version %q does not look like a semantic version", Version)
 	}
 }

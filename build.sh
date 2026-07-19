@@ -15,6 +15,13 @@ go test -race -count=1 ./...
 echo "Running vet..."
 go vet ./...
 
+echo "Running Rust tests..."
+if command -v cargo >/dev/null 2>&1; then
+    cargo test
+else
+    echo "cargo not found, skipping Rust tests"
+fi
+
 SMOKE_DIR=$(mktemp -d)
 OPT_SMOKE_DIR=$(mktemp -d)
 BRIDGE_DIR=$(mktemp -d)
