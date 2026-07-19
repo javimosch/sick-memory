@@ -297,3 +297,56 @@ func TestMainDeleteJSON(t *testing.T) {
 		t.Errorf("expected memory file to be deleted")
 	}
 }
+
+func TestHandleDeleteByFullMemoryID(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = true
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir}
+
+	if err := os.WriteFile(filepath.Join(dir, "memory_1.md"), []byte("content"), 0644); err != nil {
+		t.Fatalf("failed to write memory file: %v", err)
+	}
+
+	os.Args = []string{"cmd", "delete", "memory_1"}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleDelete(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+	if data["id"] != "memory_1" {
+		t.Errorf("id = %v, want %q", data["id"], "memory_1")
+	}
+	if data["status"] != "deleted" {
+		t.Errorf("status = %v, want %q", data["status"], "deleted")
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "memory_1.md")); !os.IsNotExist(err) {
+		t.Errorf("expected memory file to be deleted")
+	}
+}

@@ -724,6 +724,34 @@ func TestSearchMemoriesRecencyBoost(t *testing.T) {
 	}
 }
 
+func TestSearchMemoriesTypeAndRecencyBoostCombined(t *testing.T) {
+	now := time.Now()
+	idx := &SearchIndex{
+		TermFreq: map[string]map[string]int{
+			"golang": {"mem1": 1, "mem2": 1},
+		},
+		DocFreq: map[string]int{
+			"golang": 2,
+		},
+		DocCount: 2,
+		Memories: map[string]Memory{
+			"mem1": {ID: "mem1", Name: "Recent User Memory", Description: "", Content: "golang", Type: "user", Created: now},
+			"mem2": {ID: "mem2", Name: "Older Project Memory", Description: "", Content: "golang", Type: "project", Created: now.Add(-48 * time.Hour)},
+		},
+	}
+
+	results := searchMemories(idx, "golang")
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	if results[0].MemoryID != "mem2" {
+		t.Errorf("expected older project memory mem2 to outrank recent user memory, got %s", results[0].MemoryID)
+	}
+	if results[0].Score <= results[1].Score {
+		t.Errorf("expected project+recency boost score %v to be higher than user score %v", results[0].Score, results[1].Score)
+	}
+}
+
 func TestBuildSearchIndexComputesDocFreqAcrossMemories(t *testing.T) {
 	dir := t.TempDir()
 
