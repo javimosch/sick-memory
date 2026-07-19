@@ -72,6 +72,8 @@ func TestPrintHelpContainsAllCommandsAndOptions(t *testing.T) {
 		"bridge",
 		"--no-interactive",
 		"--memory-dir",
+		"--help, -h",
+		"--version, -v",
 		"0        Success",
 		"110-119  Internal software errors",
 	}
