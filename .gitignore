@@ -27,6 +27,10 @@ go.work
 *.swo
 *~
 
+# Rust / Cargo (docs verification gate)
+Cargo.lock
+target/
+
 # OS specific files
 .DS_Store
 Thumbs.db
