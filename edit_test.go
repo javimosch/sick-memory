@@ -472,7 +472,10 @@ Original content
 	if err != nil {
 		t.Fatalf("failed to read updated memory file: %v", err)
 	}
-	if !strings.Contains(string(updated), "main updated content --json") {
+	if !strings.Contains(string(updated), "main updated content") {
 		t.Errorf("expected updated content in file, got:\n%s", string(updated))
+	}
+	if strings.Contains(string(updated), "--json") {
+		t.Errorf("did not expect --json flag to be written as memory content, got:\n%s", string(updated))
 	}
 }
