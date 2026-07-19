@@ -146,6 +146,8 @@ func TestCargoExcludes(t *testing.T) {
 		".am-summary",
 		"*.go",
 		"go.mod",
+		"go.work",
+		"go.work.sum",
 		"build.sh",
 		"*_test.go",
 		"docs",
