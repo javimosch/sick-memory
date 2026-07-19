@@ -18,6 +18,8 @@ go vet ./...
 echo "Running Rust tests..."
 if command -v cargo >/dev/null 2>&1; then
     cargo test
+    echo "Running Rust packaging check..."
+    cargo package --allow-dirty
 else
     echo "cargo not found, skipping Rust tests"
 fi

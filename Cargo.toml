@@ -12,7 +12,9 @@ keywords = ["memory", "agent", "cli", "git", "worktree"]
 categories = ["command-line-utilities", "development-tools"]
 exclude = [
     ".claude",
+    ".copilot",
     ".devin",
+    ".opencode",
     "*.go",
     "go.mod",
     "build.sh",
