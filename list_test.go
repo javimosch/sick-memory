@@ -850,3 +850,45 @@ func TestHandleListIgnoresSubdirectories(t *testing.T) {
 		t.Errorf("expected memory_1.md, got %v", ids[0])
 	}
 }
+
+func TestHandleListIgnoresHiddenFilesTextOutput(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = false
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir}
+
+	if err := os.WriteFile(filepath.Join(dir, "memory_1.md"), []byte("content"), 0644); err != nil {
+		t.Fatalf("failed to write memory file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".memory_2.md"), []byte("hidden"), 0644); err != nil {
+		t.Fatalf("failed to write hidden memory file: %v", err)
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleList(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "memory_1.md") {
+		t.Errorf("expected memory_1.md in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, "Total memories: 1") {
+		t.Errorf("expected total memories count, got:\n%s", got)
+	}
+	if strings.Contains(got, ".memory_2.md") {
+		t.Errorf("expected hidden memory to be ignored, got:\n%s", got)
+	}
+}
