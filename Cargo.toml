@@ -10,3 +10,14 @@ license = "MIT"
 repository = "https://github.com/javimosch/sick-memory"
 keywords = ["memory", "agent", "cli", "git", "worktree"]
 categories = ["command-line-utilities", "development-tools"]
+exclude = [
+    ".claude",
+    ".devin",
+    "*.go",
+    "go.mod",
+    "build.sh",
+    "*_test.go",
+    "docs",
+    ".gitignore",
+    "AGENTS.md",
+]
