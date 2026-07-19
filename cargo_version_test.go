@@ -218,3 +218,31 @@ func TestCargoExcludesNoDuplicates(t *testing.T) {
 		seen[v[1]] = true
 	}
 }
+
+func TestCargoAuthors(t *testing.T) {
+	data, err := os.ReadFile("Cargo.toml")
+	if err != nil {
+		t.Fatalf("failed to read Cargo.toml: %v", err)
+	}
+	content := string(data)
+
+	re := regexp.MustCompile(`^authors\s*=\s*\[(.*?)\]`)
+	for _, line := range regexp.MustCompile(`\r?\n`).Split(content, -1) {
+		matches := re.FindStringSubmatch(line)
+		if matches == nil {
+			continue
+		}
+		vals := regexp.MustCompile(`"([^"]+)"`).FindAllStringSubmatch(matches[1], -1)
+		if len(vals) == 0 {
+			t.Error("authors field is empty")
+			return
+		}
+		for _, v := range vals {
+			if v[1] == "" {
+				t.Errorf("empty author entry in authors field")
+			}
+		}
+		return
+	}
+	t.Error("authors field not found in Cargo.toml")
+}
