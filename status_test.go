@@ -881,3 +881,53 @@ func TestHandleStatusActiveIgnoresSubdirectories(t *testing.T) {
 		t.Errorf("expected count 1, got %v", data["count"])
 	}
 }
+
+func TestHandleStatusActiveIgnoresSubdirectoriesTextOutput(t *testing.T) {
+	oldJSON := jsonOutput
+	jsonOutput = false
+	t.Cleanup(func() { jsonOutput = oldJSON })
+
+	dir := t.TempDir()
+	cfg := &Config{MemoryDir: dir}
+
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("failed to create memory dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "memory_1.md"), []byte("content"), 0644); err != nil {
+		t.Fatalf("failed to write memory file: %v", err)
+	}
+
+	nested := filepath.Join(dir, "nested")
+	if err := os.MkdirAll(nested, 0755); err != nil {
+		t.Fatalf("failed to create nested directory: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(nested, "memory_2.md"), []byte("nested content"), 0644); err != nil {
+		t.Fatalf("failed to write nested memory file: %v", err)
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	handleStatus(cfg)
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	got := string(out)
+	if !strings.Contains(got, "Memory system status: active") {
+		t.Errorf("expected active status, got %q", got)
+	}
+	if !strings.Contains(got, "Total memories: 1") {
+		t.Errorf("expected total memories count, got %q", got)
+	}
+	if strings.Contains(got, "nested") {
+		t.Errorf("expected nested content to be ignored, got %q", got)
+	}
+}
