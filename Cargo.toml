@@ -8,6 +8,7 @@ rust-version = "1.56"
 homepage = "https://github.com/javimosch/sick-memory"
 license = "MIT"
 repository = "https://github.com/javimosch/sick-memory"
+documentation = "https://github.com/javimosch/sick-memory#readme"
 keywords = ["memory", "agent", "cli", "git", "worktree"]
 categories = ["command-line-utilities", "development-tools"]
 exclude = [

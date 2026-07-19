@@ -65,6 +65,7 @@ func TestCargoMetadata(t *testing.T) {
 		`^rust-version\s*=\s*"([^"]+)"`: "1.56",
 		`^homepage\s*=\s*"([^"]+)"`:     "https://github.com/javimosch/sick-memory",
 		`^repository\s*=\s*"([^"]+)"`:   "https://github.com/javimosch/sick-memory",
+		`^documentation\s*=\s*"([^"]+)"`: "https://github.com/javimosch/sick-memory#readme",
 		`^description\s*=\s*"([^"]+)"`:  "File-based memory system for AI coding agents",
 	}
 
