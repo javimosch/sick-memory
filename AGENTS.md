@@ -29,6 +29,7 @@ sick-memory bridge copilot         # -> .copilot/settings.json
 ```bash
 sick-memory init
 sick-memory remember "<content>"
+sick-memory remember "<content>" --type project
 sick-memory recall [query]
 sick-memory list
 sick-memory status
