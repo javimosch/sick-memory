@@ -195,6 +195,30 @@ func TestGetGlobalSickMemoryDir(t *testing.T) {
 	}
 }
 
+func TestGetDefaultMemoryDir(t *testing.T) {
+	if got := getDefaultMemoryDir(); got != ".sick-memory" {
+		t.Errorf("getDefaultMemoryDir() = %q, want %q", got, ".sick-memory")
+	}
+}
+
+func TestSanitizePath(t *testing.T) {
+	cases := []struct {
+		in, want string
+	}{
+		{"/home/user/project", "-home-user-project"},
+		{"C:/Users/My Project/repo", "C--Users-My_Project-repo"},
+		{"path\\with\\backslashes", "path-with-backslashes"},
+		{"no:colons:here", "no-colons-here"},
+		{"plain", "plain"},
+	}
+
+	for _, c := range cases {
+		if got := sanitizePath(c.in); got != c.want {
+			t.Errorf("sanitizePath(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
 func TestGetProjectMemoryPath(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
