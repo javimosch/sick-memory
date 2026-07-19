@@ -108,7 +108,7 @@ func TestHandleDeleteMissingArgument(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleDeleteMissingArgument", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleDeleteMissingArgument$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -130,7 +130,7 @@ func TestHandleDeleteMemoryNotFound(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleDeleteMemoryNotFound", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleDeleteMemoryNotFound$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -152,7 +152,7 @@ func TestHandleDeleteReadDirError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleDeleteReadDirError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleDeleteReadDirError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -181,7 +181,7 @@ func TestHandleDeleteRemoveError(t *testing.T) {
 		return
 	}
 
-	cmd := exec.Command(os.Args[0], "-test.run=TestHandleDeleteRemoveError", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestHandleDeleteRemoveError$", "-test.v")
 	cmd.Env = append(os.Environ(), "EXIT_TEST=1")
 	err := cmd.Run()
 
@@ -202,7 +202,7 @@ func TestMainDeleteMissingArgument(t *testing.T) {
 	}
 
 	home := t.TempDir()
-	cmd := exec.Command(os.Args[0], "-test.run=TestMainDeleteMissingArgument", "-test.v")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestMainDeleteMissingArgument$", "-test.v")
 	cmd.Env = append(os.Environ(), "MAIN_DELETE_MISSING=1", "HOME="+home)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
