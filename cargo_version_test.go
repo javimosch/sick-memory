@@ -6,6 +6,28 @@ import (
 	"testing"
 )
 
+func TestCargoPackageName(t *testing.T) {
+	data, err := os.ReadFile("Cargo.toml")
+	if err != nil {
+		t.Fatalf("failed to read Cargo.toml: %v", err)
+	}
+
+	re := regexp.MustCompile(`^name\s*=\s*"([^"]+)"`)
+	for _, line := range regexp.MustCompile(`\r?\n`).Split(string(data), -1) {
+		matches := re.FindStringSubmatch(line)
+		if matches == nil {
+			continue
+		}
+
+		if matches[1] != "sick-memory" {
+			t.Errorf("Cargo.toml name %q does not match expected %q", matches[1], "sick-memory")
+		}
+		return
+	}
+
+	t.Error("name field not found in Cargo.toml")
+}
+
 func TestCargoVersionMatchesGoVersion(t *testing.T) {
 	data, err := os.ReadFile("Cargo.toml")
 	if err != nil {
