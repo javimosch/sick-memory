@@ -181,15 +181,17 @@ func main() {
 	}
 }
 
-// getDefaultMemoryDir returns the fallback local memory directory path
-// used when not in a git repository or when centralized storage is unavailable.
+// getDefaultMemoryDir returns the fallback local memory directory path.
+// Used when git-based scoping is unavailable or when the user explicitly
+// sets a local directory. Returns ".sick-memory" relative to the current directory.
 func getDefaultMemoryDir() string {
 	// Default to local .sick-memory directory (fallback)
 	return ".sick-memory"
 }
 
-// getGlobalSickMemoryDir returns the centralized sick-memory directory path
-// in the user's home directory (~/.sick-memory).
+// getGlobalSickMemoryDir returns the centralized sick-memory directory path.
+// Located at ~/.sick-memory/ in the user's home directory. Falls back to
+// getDefaultMemoryDir() if the home directory cannot be determined.
 func getGlobalSickMemoryDir() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -198,8 +200,9 @@ func getGlobalSickMemoryDir() string {
 	return filepath.Join(homeDir, ".sick-memory")
 }
 
-// findGitRepositoryRoot uses git rev-parse to find the root directory
-// of the current git repository. Returns an error if not in a git repository.
+// findGitRepositoryRoot determines the git repository root directory by running
+// "git rev-parse --show-toplevel". Returns the absolute path to the repository root
+// or an error if not in a git repository.
 func findGitRepositoryRoot() (string, error) {
 	// Try git rev-parse --show-toplevel
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
@@ -207,13 +210,14 @@ func findGitRepositoryRoot() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("not in a git repository")
 	}
-	
+
 	root := strings.TrimSpace(string(output))
 	return root, nil
 }
 
-// sanitizePath replaces filesystem-unsafe characters with safe alternatives
-// to create valid directory names from git repository paths.
+// sanitizePath converts a filesystem path into a safe directory name by replacing
+// problematic characters (/, \, :) with dashes and spaces with underscores.
+// Used to create valid directory names from git repository paths.
 func sanitizePath(path string) string {
 	// Replace slashes and other problematic characters with dashes
 	sanitized := strings.ReplaceAll(path, "/", "-")
@@ -223,38 +227,44 @@ func sanitizePath(path string) string {
 	return sanitized
 }
 
-// getProjectMemoryPath constructs the centralized memory storage path
-// for a specific git repository, using sanitized repository root as directory name.
+// getProjectMemoryPath constructs the memory directory path for a specific git repository.
+// Returns ~/.sick-memory/projects/<sanitized-git-root>/memory, enabling centralized
+// storage with git-based scoping. All worktrees of the same repository share this path.
 func getProjectMemoryPath(gitRoot string) string {
 	globalDir := getGlobalSickMemoryDir()
 	sanitizedRoot := sanitizePath(gitRoot)
 	return filepath.Join(globalDir, "projects", sanitizedRoot, "memory")
 }
 
+// loadGlobalConfig loads user preferences from ~/.sick-memory/config.json.
+// If the config file doesn't exist, creates it with default values:
+// - default_memory_type: "user"
+// - max_memory_size: 1MB
+// - auto_index: true
 func loadGlobalConfig() GlobalConfig {
 	globalDir := getGlobalSickMemoryDir()
 	configPath := filepath.Join(globalDir, "config.json")
-	
+
 	// Default config
 	config := GlobalConfig{
 		DefaultMemoryType: "user",
 		MaxMemorySize:     1024 * 1024, // 1MB
 		AutoIndex:         true,
 	}
-	
+
 	// Try to load existing config
 	if data, err := os.ReadFile(configPath); err == nil {
 		if err := json.Unmarshal(data, &config); err == nil {
 			return config
 		}
 	}
-	
+
 	// Create default config if it doesn't exist
 	if err := os.MkdirAll(globalDir, 0755); err == nil {
 		configData, _ := json.MarshalIndent(config, "", "  ")
 		_ = os.WriteFile(configPath, configData, 0644)
 	}
-	
+
 	return config
 }
 
@@ -336,14 +346,18 @@ func buildSearchIndex(memoryPath string) (*SearchIndex, error) {
 	return index, nil
 }
 
+// parseMemory parses a markdown file with YAML frontmatter into a Memory struct.
+// Extracts metadata fields (name, description, type, created) from the frontmatter
+// and stores the remaining content as the memory body. The filename (without .md)
+// becomes the memory ID.
 func parseMemory(content, filename string) Memory {
 	lines := strings.Split(content, "\n")
 	var memory Memory
 	memory.ID = strings.TrimSuffix(filename, ".md")
-	
+
 	inFrontmatter := false
 	var contentLines []string
-	
+
 	for _, line := range lines {
 		if line == "---" {
 			if !inFrontmatter {
@@ -354,7 +368,7 @@ func parseMemory(content, filename string) Memory {
 				continue
 			}
 		}
-		
+
 		if inFrontmatter {
 			if strings.HasPrefix(line, "name:") {
 				memory.Name = strings.TrimSpace(strings.TrimPrefix(line, "name:"))
@@ -371,7 +385,7 @@ func parseMemory(content, filename string) Memory {
 			contentLines = append(contentLines, line)
 		}
 	}
-	
+
 	memory.Content = strings.Join(contentLines, "\n")
 	return memory
 }
@@ -991,6 +1005,10 @@ func handleConfig(cfg *Config) {
 	}
 }
 
+// handleBridge generates agent-specific configuration files for integrating sick-memory
+// with AI coding agents. Supports claude-code, opencode, and copilot. Parses the agent
+// name from command line arguments (skipping flags) and delegates to the appropriate
+// generator function.
 func handleBridge(cfg *Config) {
 	// Get agent name from command line args (skip command and flags)
 	args := []string{}
@@ -1029,6 +1047,9 @@ func handleBridge(cfg *Config) {
 	}
 }
 
+// generateClaudeCodeBridge creates a .claude/CLAUDE.md file with instructions
+// for integrating sick-memory with Claude Code. Includes memory loading commands,
+// memory addition examples, and the centralized storage location path.
 func generateClaudeCodeBridge(cfg *Config) {
 	claudeMDContent := fmt.Sprintf(`# Sick-Memory Integration for Claude Code
 
@@ -1097,6 +1118,9 @@ The following bridge commands are available:
 	}
 }
 
+// generateOpenCodeBridge creates a .opencode/memory.json file with configuration
+// for integrating sick-memory with OpenCode. Includes memory loading and
+// addition commands in OpenCode's JSON format.
 func generateOpenCodeBridge(cfg *Config) {
 	opencodeConfig := fmt.Sprintf(`# Sick-Memory Integration for OpenCode
 
@@ -1149,6 +1173,9 @@ sick-memory remember "Project-specific context"
 	}
 }
 
+// generateCopilotBridge creates a .copilot/settings.json file with configuration
+// for integrating sick-memory with GitHub Copilot. Includes memory command
+// configuration and storage path in Copilot's JSON format.
 func generateCopilotBridge(cfg *Config) {
 	copilotConfig := fmt.Sprintf(`# Sick-Memory Integration for GitHub Copilot
 

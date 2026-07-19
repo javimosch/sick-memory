@@ -39,8 +39,10 @@ cp sick-memory ~/.local/bin/
 ### SuperCLI Plugin
 
 ```bash
+# Navigate to your SuperCLI installation directory
+cd <path-to-supercli>
+
 # Install the SuperCLI plugin
-cd ~/ai/supercli
 sc plugins install ./plugins/sick-memory --on-conflict replace --json
 
 # Sync skills to make the skill available
