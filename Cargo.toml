@@ -7,6 +7,7 @@ readme = "README.md"
 rust-version = "1.56"
 homepage = "https://github.com/javimosch/sick-memory"
 license = "MIT"
+authors = ["javimosch"]
 repository = "https://github.com/javimosch/sick-memory"
 documentation = "https://github.com/javimosch/sick-memory#readme"
 keywords = ["memory", "agent", "cli", "git", "worktree"]

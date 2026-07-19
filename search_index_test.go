@@ -1326,3 +1326,23 @@ func TestBuildSearchIndexIgnoresHiddenMemoryFile(t *testing.T) {
 		t.Errorf("did not expect hidden .memory_2.md to be indexed")
 	}
 }
+
+func TestExtractKeywordsTrimsSurroundingPunctuation(t *testing.T) {
+	cases := []struct {
+		in   string
+		want []string
+	}{
+		{"((Golang))", []string{"golang"}},
+		{"'Python'!", []string{"python"}},
+		{"C++ is great", []string{"c++", "great"}},
+		{"don't forget", []string{"don't", "forget"}},
+		{"well-known test", []string{"well-known", "test"}},
+	}
+
+	for _, c := range cases {
+		got := extractKeywords(c.in)
+		if !reflect.DeepEqual(got, c.want) {
+			t.Errorf("extractKeywords(%q) = %v, want %v", c.in, got, c.want)
+		}
+	}
+}
