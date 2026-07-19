@@ -360,3 +360,44 @@ func TestSuccessResponseWithBoolean(t *testing.T) {
 		t.Errorf("data = %v, want true", data)
 	}
 }
+
+func TestSuccessResponseWithNestedObject(t *testing.T) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+
+	old := os.Stdout
+	os.Stdout = w
+	successResponse(map[string]interface{}{
+		"nested": map[string]interface{}{
+			"key": "value",
+		},
+	})
+	os.Stdout = old
+	w.Close()
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("failed to read stdout: %v", err)
+	}
+
+	var resp SuccessResponse
+	if err := json.Unmarshal(out, &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v\n%s", err, out)
+	}
+
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.Data)
+	}
+
+	nested, ok := data["nested"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected nested object, got %T", data["nested"])
+	}
+
+	if nested["key"] != "value" {
+		t.Errorf("nested key = %v, want %q", nested["key"], "value")
+	}
+}
