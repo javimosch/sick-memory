@@ -87,3 +87,61 @@ func TestCargoMetadata(t *testing.T) {
 		t.Errorf("field matching %q not found in Cargo.toml", pattern)
 	}
 }
+
+func TestCargoKeywords(t *testing.T) {
+	data, err := os.ReadFile("Cargo.toml")
+	if err != nil {
+		t.Fatalf("failed to read Cargo.toml: %v", err)
+	}
+	content := string(data)
+
+	re := regexp.MustCompile(`^keywords\s*=\s*\[(.*?)\]`)
+	for _, line := range regexp.MustCompile(`\r?\n`).Split(content, -1) {
+		matches := re.FindStringSubmatch(line)
+		if matches == nil {
+			continue
+		}
+		vals := regexp.MustCompile(`"([^"]+)"`).FindAllStringSubmatch(matches[1], -1)
+		want := []string{"memory", "agent", "cli", "git", "worktree"}
+		if len(vals) != len(want) {
+			t.Errorf("expected %d keywords, got %d", len(want), len(vals))
+			return
+		}
+		for i, w := range want {
+			if vals[i][1] != w {
+				t.Errorf("keyword %d = %q, want %q", i, vals[i][1], w)
+			}
+		}
+		return
+	}
+	t.Error("keywords field not found in Cargo.toml")
+}
+
+func TestCargoCategories(t *testing.T) {
+	data, err := os.ReadFile("Cargo.toml")
+	if err != nil {
+		t.Fatalf("failed to read Cargo.toml: %v", err)
+	}
+	content := string(data)
+
+	re := regexp.MustCompile(`^categories\s*=\s*\[(.*?)\]`)
+	for _, line := range regexp.MustCompile(`\r?\n`).Split(content, -1) {
+		matches := re.FindStringSubmatch(line)
+		if matches == nil {
+			continue
+		}
+		vals := regexp.MustCompile(`"([^"]+)"`).FindAllStringSubmatch(matches[1], -1)
+		want := []string{"command-line-utilities", "development-tools"}
+		if len(vals) != len(want) {
+			t.Errorf("expected %d categories, got %d", len(want), len(vals))
+			return
+		}
+		for i, w := range want {
+			if vals[i][1] != w {
+				t.Errorf("category %d = %q, want %q", i, vals[i][1], w)
+			}
+		}
+		return
+	}
+	t.Error("categories field not found in Cargo.toml")
+}
