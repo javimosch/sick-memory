@@ -22,5 +22,6 @@ exclude = [
     "*_test.go",
     "docs",
     ".gitignore",
+    ".github",
     "AGENTS.md",
 ]

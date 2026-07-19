@@ -117,6 +117,53 @@ func TestCargoKeywords(t *testing.T) {
 	t.Error("keywords field not found in Cargo.toml")
 }
 
+func TestCargoExcludes(t *testing.T) {
+	data, err := os.ReadFile("Cargo.toml")
+	if err != nil {
+		t.Fatalf("failed to read Cargo.toml: %v", err)
+	}
+	content := string(data)
+
+	re := regexp.MustCompile(`exclude\s*=\s*\[([\s\S]*?)\]`)
+	matches := re.FindStringSubmatch(content)
+	if matches == nil {
+		t.Fatal("exclude field not found in Cargo.toml")
+	}
+
+	vals := regexp.MustCompile(`"([^"]+)"`).FindAllStringSubmatch(matches[1], -1)
+	got := make([]string, 0, len(vals))
+	for _, v := range vals {
+		got = append(got, v[1])
+	}
+
+	want := []string{
+		".github",
+		".claude",
+		".copilot",
+		".devin",
+		".opencode",
+		".am-summary",
+		"*.go",
+		"go.mod",
+		"build.sh",
+		"*_test.go",
+		"docs",
+		".gitignore",
+		"AGENTS.md",
+	}
+
+	gotSet := make(map[string]bool, len(got))
+	for _, g := range got {
+		gotSet[g] = true
+	}
+
+	for _, w := range want {
+		if !gotSet[w] {
+			t.Errorf("expected %q in exclude list", w)
+		}
+	}
+}
+
 func TestCargoCategories(t *testing.T) {
 	data, err := os.ReadFile("Cargo.toml")
 	if err != nil {
