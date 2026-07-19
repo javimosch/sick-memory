@@ -59,14 +59,14 @@ func TestCargoMetadata(t *testing.T) {
 	content := string(data)
 
 	checks := map[string]string{
-		`^name\s*=\s*"([^"]+)"`:         "sick-memory",
-		`^license\s*=\s*"([^"]+)"`:      "MIT",
-		`^readme\s*=\s*"([^"]+)"`:       "README.md",
-		`^rust-version\s*=\s*"([^"]+)"`: "1.56",
-		`^homepage\s*=\s*"([^"]+)"`:     "https://github.com/javimosch/sick-memory",
-		`^repository\s*=\s*"([^"]+)"`:   "https://github.com/javimosch/sick-memory",
+		`^name\s*=\s*"([^"]+)"`:          "sick-memory",
+		`^license\s*=\s*"([^"]+)"`:       "MIT",
+		`^readme\s*=\s*"([^"]+)"`:        "README.md",
+		`^rust-version\s*=\s*"([^"]+)"`:  "1.56",
+		`^homepage\s*=\s*"([^"]+)"`:      "https://github.com/javimosch/sick-memory",
+		`^repository\s*=\s*"([^"]+)"`:    "https://github.com/javimosch/sick-memory",
 		`^documentation\s*=\s*"([^"]+)"`: "https://github.com/javimosch/sick-memory#readme",
-		`^description\s*=\s*"([^"]+)"`:  "File-based memory system for AI coding agents",
+		`^description\s*=\s*"([^"]+)"`:   "File-based memory system for AI coding agents",
 	}
 
 	for pattern, want := range checks {
@@ -146,6 +146,8 @@ func TestCargoExcludes(t *testing.T) {
 		".am-summary",
 		"*.go",
 		"go.mod",
+		"go.work",
+		"go.work.sum",
 		"build.sh",
 		"*_test.go",
 		"docs",
@@ -192,4 +194,27 @@ func TestCargoCategories(t *testing.T) {
 		return
 	}
 	t.Error("categories field not found in Cargo.toml")
+}
+
+func TestCargoExcludesNoDuplicates(t *testing.T) {
+	data, err := os.ReadFile("Cargo.toml")
+	if err != nil {
+		t.Fatalf("failed to read Cargo.toml: %v", err)
+	}
+	content := string(data)
+
+	re := regexp.MustCompile(`exclude\s*=\s*\[([\s\S]*?)\]`)
+	matches := re.FindStringSubmatch(content)
+	if matches == nil {
+		t.Fatal("exclude field not found in Cargo.toml")
+	}
+
+	vals := regexp.MustCompile(`"([^"]+)"`).FindAllStringSubmatch(matches[1], -1)
+	seen := make(map[string]bool, len(vals))
+	for _, v := range vals {
+		if seen[v[1]] {
+			t.Errorf("duplicate exclude entry %q in Cargo.toml", v[1])
+		}
+		seen[v[1]] = true
+	}
 }
