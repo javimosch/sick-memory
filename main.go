@@ -768,13 +768,28 @@ func handleList(cfg *Config) {
 }
 
 func handleEdit(cfg *Config) {
-	if len(os.Args) < 4 {
+	// Extract memory ID and new content, skipping global flags.
+	args := []string{}
+	for i := 2; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		// Skip flags
+		if arg == "--json" || arg == "-j" || arg == "--no-interactive" || arg == "-y" {
+			continue
+		}
+		if arg == "--memory-dir" && i+1 < len(os.Args) {
+			i++
+			continue
+		}
+		args = append(args, arg)
+	}
+
+	if len(args) < 2 {
 		errorResponse(80, "missing_argument", "Memory ID and new content required for edit. Usage: sick-memory edit <id> <new content>", false)
 		os.Exit(80)
 	}
 
-	memoryID := os.Args[2]
-	newContent := strings.Join(os.Args[3:], " ")
+	memoryID := args[0]
+	newContent := strings.Join(args[1:], " ")
 	
 	// Find the memory file
 	memoryPath := cfg.MemoryDir
