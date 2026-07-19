@@ -2,7 +2,7 @@ package main
 
 import (
 	"os"
-	"strings"
+	"regexp"
 	"testing"
 )
 
@@ -12,18 +12,14 @@ func TestCargoVersionMatchesGoVersion(t *testing.T) {
 		t.Fatalf("failed to read Cargo.toml: %v", err)
 	}
 
-	for _, line := range strings.Split(string(data), "\n") {
-		line = strings.TrimSpace(line)
-		if !strings.HasPrefix(line, "version") {
+	re := regexp.MustCompile(`^version\s*=\s*"([^"]+)"`)
+	for _, line := range regexp.MustCompile(`\r?\n`).Split(string(data), -1) {
+		matches := re.FindStringSubmatch(line)
+		if matches == nil {
 			continue
 		}
 
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
-			continue
-		}
-
-		cargoVersion := strings.Trim(strings.TrimSpace(parts[1]), `"`)
+		cargoVersion := matches[1]
 		if cargoVersion != Version {
 			t.Errorf("Cargo.toml version %q does not match Go Version %q", cargoVersion, Version)
 		}
